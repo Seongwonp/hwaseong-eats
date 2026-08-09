@@ -18,5 +18,8 @@ frontend/.packages
 .vscode/
 .idea/
 
+# Jupyter
+.ipynb_checkpoints/
+
 # OS
 .DS_Store
