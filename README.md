@@ -64,27 +64,49 @@
 
 ```
 hwaseong-eats/
-├── frontend/                   # Flutter 앱
-│   ├── lib/
-│   │   ├── main.dart
-│   │   ├── core/               # 테마, 상수
-│   │   ├── screens/            # 화면
-│   │   ├── widgets/            # 공통 위젯
-│   │   ├── models/             # 데이터 모델
-│   │   ├── services/           # API 통신
-│   │   └── providers/          # Riverpod 상태관리
-│   ├── CLAUDE.md               # AI 협업 가이드
-│   └── pubspec.yaml
-├── backend/                    # FastAPI 서버
-│   ├── app/
-│   │   ├── models/             # SQLAlchemy 모델
-│   │   ├── schemas/            # Pydantic 스키마
-│   │   ├── routers/            # API 엔드포인트
-│   │   └── services/           # 비즈니스 로직
-│   ├── alembic/                # DB 마이그레이션
-│   ├── pyproject.toml          # uv 패키지 관리
-│   └── .env.example
-└── docs/                       # 개발 가이드
+├── .gitignore
+├── README.md
+│
+├── frontend/                        # Flutter 앱 (iOS · Android)
+│   ├── CLAUDE.md                    # AI 협업 가이드 (디자인 시스템, 코딩 규칙)
+│   ├── pubspec.yaml                 # Flutter 패키지 관리
+│   ├── .env.example                 # 환경변수 예시
+│   ├── assets/
+│   │   └── fonts/                   # NotoSerifKR 폰트
+│   └── lib/
+│       ├── main.dart                # 앱 진입점
+│       ├── core/
+│       │   ├── theme.dart           # AppColors, AppTheme
+│       │   └── constants.dart       # API 엔드포인트, 앱 상수
+│       ├── screens/                 # 화면 (지도, 상세, 리뷰, 리워드 등)
+│       ├── widgets/                 # 재사용 위젯
+│       ├── models/                  # JSON 파싱 데이터 클래스
+│       ├── services/
+│       │   └── api_service.dart     # Dio 기반 HTTP 통신
+│       └── providers/               # Riverpod 전역 상태관리
+│
+├── backend/                         # FastAPI 서버 (Render 배포)
+│   ├── pyproject.toml               # uv 패키지 관리
+│   ├── alembic.ini                  # Alembic 설정
+│   ├── .env.example                 # 환경변수 예시
+│   ├── alembic/                     # DB 마이그레이션
+│   │   ├── env.py
+│   │   ├── script.py.mako
+│   │   └── versions/                # 마이그레이션 파일 (자동 생성)
+│   └── app/
+│       ├── main.py                  # FastAPI 앱 진입점
+│       ├── database.py              # DB 연결, 세션 관리
+│       ├── models/                  # SQLAlchemy 테이블 정의
+│       ├── schemas/                 # Pydantic 요청·응답 스키마
+│       ├── routers/                 # API 엔드포인트
+│       └── services/                # 비즈니스 로직, 데이터 파이프라인
+│
+└── docs/                            # 개발 가이드 문서
+    ├── 시스템아키텍처.md
+    ├── backend-setup.md             # uv 설치 및 환경 세팅
+    ├── sqlalchemy-guide.md          # SQLAlchemy 사용법
+    ├── alembic-guide.md             # 마이그레이션 가이드
+    └── backend-crud.md              # CRUD 구현 패턴
 ```
 
 ---
