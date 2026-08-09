@@ -1,0 +1,47 @@
+name: hwaseong_eats
+description: 화성뭐먹지? - 화성시 공공데이터 기반 지역 먹거리 지도 플랫폼
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 네트워크
+  dio: ^5.4.0
+
+  # 상태 관리
+  flutter_riverpod: ^2.5.0
+
+  # 라우팅
+  go_router: ^13.0.0
+
+  # 카카오맵
+  kakao_map_plugin: ^0.4.0
+
+  # 환경변수
+  flutter_dotenv: ^5.1.0
+
+  # 폰트
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+
+  fonts:
+    - family: NotoSerifKR
+      fonts:
+        - asset: assets/fonts/NotoSerifKR-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSerifKR-Bold.ttf
+          weight: 700
