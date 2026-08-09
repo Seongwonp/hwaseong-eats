@@ -15,11 +15,11 @@ class HwaseongEatsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '화성뭐먹지?',
+      title: '볏섬',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
       home: const Scaffold(
-        body: Center(child: Text('화성뭐먹지?')),
+        body: Center(child: Text('볏섬')),
       ),
     );
   }

@@ -1,7 +1,7 @@
 [project]
 name = "hwaseong-eats-backend"
 version = "0.1.0"
-description = "화성뭐먹지? 백엔드 API 서버"
+description = "볏섬 백엔드 API 서버"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",

@@ -1,4 +1,4 @@
-# CLAUDE.md — 화성뭐먹지? Flutter 프로젝트
+# CLAUDE.md — 볏섬 Flutter 프로젝트
 
 ## 프로젝트 개요
 

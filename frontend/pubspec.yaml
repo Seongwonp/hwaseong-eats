@@ -1,5 +1,5 @@
 name: hwaseong_eats
-description: 화성뭐먹지? - 화성시 공공데이터 기반 지역 먹거리 지도 플랫폼
+description: 볏섬 - 화성시 공공데이터 기반 지역 먹거리 지도 플랫폼
 version: 1.0.0+1
 
 environment:
