@@ -16,22 +16,18 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen> {
+  // ignore: unused_field — 추후 지도 이동/레벨 조작에 사용
   KakaoMapController? _mapController;
   final SeasonalEvent? _todayEvent = getTodayEvent();
 
   Set<Marker> _buildMarkers(List restaurants) {
     return restaurants.map((r) {
-      Color markerColor = AppColors.markerDefault;
-      if (r.isHwaseongPay) markerColor = AppColors.markerPay;
-
-      // TODO: 절기 기간이면 markerColor = AppColors.markerSeasonal
-      // TODO: 축제 주변이면 markerColor = AppColors.markerFestival
-
+      // TODO: 커스텀 마커 이미지로 색상별 분기 처리
+      // 화성페이: markerPay / 절기: markerSeasonal / 축제: markerFestival
       return Marker(
         markerId: r.id.toString(),
         latLng: LatLng(r.lat, r.lng),
         markerImageSrc: '',
-        // 마커 색상은 커스텀 마커 이미지로 교체 필요
       );
     }).toSet();
   }
@@ -52,30 +48,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final restaurants = ref.watch(restaurantProvider);
+    final todayEvent = _todayEvent;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // 카카오맵
           KakaoMap(
             onMapCreated: (controller) => _mapController = controller,
             onMarkerTap: _onMarkerTap,
-            center: const LatLng(37.1996, 126.8312), // 화성시 중심
+            center: const LatLng(37.1996, 126.8312),
             currentLevel: 8,
             markers: _buildMarkers(restaurants),
           ),
-
-          // 상단 오버레이
           SafeArea(
             child: Column(
               children: [
-                // 절기 배너 (오늘 해당하는 경우만)
-                if (_todayEvent != null) SeasonalBanner(event: _todayEvent!),
-
-                // 필터 칩
+                if (todayEvent != null) SeasonalBanner(event: todayEvent),
                 Container(
-                  color: AppColors.background.withOpacity(0.95),
+                  color: AppColors.background.withValues(alpha: 0.95),
                   child: const FilterChipRow(),
                 ),
               ],

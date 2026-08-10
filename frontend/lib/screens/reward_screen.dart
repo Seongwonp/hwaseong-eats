@@ -54,7 +54,7 @@ class RewardScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text('화성주민 인증', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
@@ -97,7 +97,7 @@ class RewardScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               '1,000P = 1,000원 화성페이 (최소 1,000P)',
-              style: TextStyle(fontSize: 12, color: AppColors.textPrimary.withOpacity(0.5)),
+              style: TextStyle(fontSize: 12, color: AppColors.textPrimary.withValues(alpha: 0.5)),
             ),
 
             const SizedBox(height: 28),

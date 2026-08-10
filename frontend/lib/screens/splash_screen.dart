@@ -68,7 +68,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   fontFamily: 'NotoSerifKR',
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  color: AppColors.textPrimary.withOpacity(0.6),
+                  color: AppColors.textPrimary.withValues(alpha: 0.6),
                 ),
               ),
             ],

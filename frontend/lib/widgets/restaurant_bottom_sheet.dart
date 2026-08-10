@@ -67,7 +67,7 @@ class RestaurantBottomSheet extends StatelessWidget {
                       restaurant.address,
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textPrimary.withOpacity(0.6),
+                        color: AppColors.textPrimary.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -113,13 +113,13 @@ class RestaurantBottomSheet extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: AppColors.textPrimary.withOpacity(0.4)),
+                Icon(Icons.info_outline, size: 16, color: AppColors.textPrimary.withValues(alpha: 0.4)),
                 const SizedBox(width: 8),
                 Text(
                   '아직 화성인증 식사평이 없어요',
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textPrimary.withOpacity(0.5),
+                    color: AppColors.textPrimary.withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -156,7 +156,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
@@ -182,9 +182,9 @@ class _SourceBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(source, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
     );

@@ -70,7 +70,7 @@ class _FilterChip extends StatelessWidget {
             color: selected ? AppColors.primary : Colors.grey.shade300,
           ),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 4, offset: const Offset(0, 2)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4, offset: const Offset(0, 2)),
           ],
         ),
         child: Row(

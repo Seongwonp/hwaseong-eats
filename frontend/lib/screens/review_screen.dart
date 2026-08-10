@@ -53,9 +53,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
               ),
               child: Row(
                 children: [
@@ -148,7 +148,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: _receiptVerified ? AppColors.primary.withOpacity(0.08) : Colors.white,
+                  color: _receiptVerified ? AppColors.primary.withValues(alpha: 0.08) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _receiptVerified ? AppColors.primary : Colors.grey.shade300,
