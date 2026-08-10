@@ -21,7 +21,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   KakaoMapController? _mapController;
   final SeasonalEvent? _todayEvent = getTodayEvent();
 
-  Set<Marker> _buildMarkers(List restaurants) {
+  List<Marker> _buildMarkers(List restaurants) {
     return restaurants.map((r) {
       // TODO: 커스텀 마커 이미지로 색상별 분기 처리
       // 화성페이: markerPay / 절기: markerSeasonal / 축제: markerFestival
@@ -30,10 +30,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         latLng: LatLng(r.lat, r.lng),
         markerImageSrc: '',
       );
-    }).toSet();
+    }).toList();
   }
 
-  void _onMarkerTap(String markerId, LatLng latLng) {
+  void _onMarkerTap(String markerId, LatLng latLng, int zoomLevel) {
     final restaurants = ref.read(restaurantProvider);
     final restaurant = restaurants.firstWhere((r) => r.id.toString() == markerId);
 
@@ -58,7 +58,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           KakaoMap(
             onMapCreated: (controller) => _mapController = controller,
             onMarkerTap: _onMarkerTap,
-            center: const LatLng(37.1996, 126.8312),
+            center: LatLng(37.1996, 126.8312),
             currentLevel: 8,
             markers: _buildMarkers(restaurants),
           ),
