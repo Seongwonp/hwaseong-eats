@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../models/seasonal_event.dart';
-import '../providers/restaurant_provider.dart';
 import '../models/restaurant.dart';
+import '../providers/restaurant_provider.dart';
+import '../widgets/section_title.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -19,6 +20,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   static const _seasonalKeywords = ['삼계탕', '장어', '포도', '수산물', '떡국', '팥죽'];
   static const _tagKeywords = ['카공픽', '10대픽', '혼밥', '가성비'];
+  static const _popularKeywords = ['화성페이', '한식', '국밥', '돼지갈비', '포도'];
 
   @override
   void dispose() {
@@ -34,6 +36,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       r.category.contains(_query) ||
       r.tags.any((t) => t.contains(_query))
     ).toList();
+  }
+
+  void _setQuery(String value) {
+    _controller.text = value;
+    setState(() => _query = value);
   }
 
   @override
@@ -57,10 +64,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             hintStyle: TextStyle(fontSize: 14, color: AppColors.textPrimary.withValues(alpha: 0.4)),
             border: InputBorder.none,
             suffixIcon: _query.isNotEmpty
-                ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () {
-                    _controller.clear();
-                    setState(() => _query = '');
-                  })
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () { _controller.clear(); setState(() => _query = ''); },
+                  )
                 : null,
           ),
           onChanged: (v) => setState(() => _query = v),
@@ -77,50 +84,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (todayEvent != null) ...[
-            _SectionTitle('${todayEvent.name} 추천'),
+            SectionTitle('${todayEvent.name} 추천'),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _seasonalKeywords.map((k) => _KeywordChip(
-                label: k,
-                color: AppColors.markerSeasonal,
-                onTap: () {
-                  _controller.text = k;
-                  setState(() => _query = k);
-                },
-              )).toList(),
+            _ChipWrap(
+              keywords: _seasonalKeywords,
+              color: AppColors.markerSeasonal,
+              onTap: _setQuery,
             ),
             const SizedBox(height: 24),
           ],
-          _SectionTitle('태그로 찾기'),
+          const SectionTitle('태그로 찾기'),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _tagKeywords.map((k) => _KeywordChip(
-              label: '#$k',
-              color: AppColors.primary,
-              onTap: () {
-                _controller.text = k;
-                setState(() => _query = k);
-              },
-            )).toList(),
+          _ChipWrap(
+            keywords: _tagKeywords.map((k) => '#$k').toList(),
+            color: AppColors.primary,
+            onTap: (k) => _setQuery(k.replaceFirst('#', '')),
           ),
           const SizedBox(height: 24),
-          _SectionTitle('자주 찾는 키워드'),
+          const SectionTitle('자주 찾는 키워드'),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: ['화성페이', '한식', '국밥', '돼지갈비', '포도'].map((k) => _KeywordChip(
-              label: k,
-              color: Colors.grey.shade600,
-              onTap: () {
-                _controller.text = k;
-                setState(() => _query = k);
-              },
-            )).toList(),
+          _ChipWrap(
+            keywords: _popularKeywords,
+            color: Colors.grey.shade600,
+            onTap: _setQuery,
           ),
         ],
       ),
@@ -169,36 +155,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  final String text;
-  const _SectionTitle(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(text, style: const TextStyle(fontFamily: 'NotoSerifKR', fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary));
-  }
-}
-
-class _KeywordChip extends StatelessWidget {
-  final String label;
+class _ChipWrap extends StatelessWidget {
+  final List<String> keywords;
   final Color color;
-  final VoidCallback onTap;
+  final ValueChanged<String> onTap;
 
-  const _KeywordChip({required this.label, required this.color, required this.onTap});
+  const _ChipWrap({required this.keywords, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: keywords.map((k) => GestureDetector(
+        onTap: () => onTap(k),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+          ),
+          child: Text(k, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
         ),
-        child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
-      ),
+      )).toList(),
     );
   }
 }
