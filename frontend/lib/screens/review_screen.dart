@@ -15,6 +15,7 @@ class ReviewScreen extends StatefulWidget {
 }
 
 class _ReviewScreenState extends State<ReviewScreen> {
+  int? _rating;
   final Map<String, String?> _attributes = {
     '양': null,
     '맵기': null,
@@ -52,6 +53,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
           children: [
             _HwaseongCertBanner(),
             const SizedBox(height: 24),
+
+            const SectionTitle('별점'),
+            const SizedBox(height: 10),
+            _StarRating(
+              rating: _rating,
+              onRate: (v) => setState(() => _rating = v),
+            ),
+            const SizedBox(height: 20),
 
             const SectionTitle('양이 어땠나요?'),
             const SizedBox(height: 10),
@@ -140,6 +149,33 @@ class _ReviewScreenState extends State<ReviewScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StarRating extends StatelessWidget {
+  final int? rating;
+  final ValueChanged<int> onRate;
+
+  const _StarRating({required this.rating, required this.onRate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(5, (i) {
+        final filled = rating != null && i < rating!;
+        return GestureDetector(
+          onTap: () => onRate(i + 1),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: Icon(
+              filled ? Icons.star_rounded : Icons.star_outline_rounded,
+              size: 36,
+              color: filled ? AppColors.primary : Colors.grey.shade300,
+            ),
+          ),
+        );
+      }),
     );
   }
 }

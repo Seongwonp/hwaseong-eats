@@ -16,9 +16,9 @@ class ApiService {
   Dio get dio => _dio;
 
   // 음식점 목록 조회
-  Future<Response> getRestaurants({bool? isHwaseongPay, String? category}) {
+  Future<Response> getRestaurants({bool? isKonapay, String? category}) {
     return _dio.get(ApiConstants.restaurants, queryParameters: {
-      if (isHwaseongPay != null) 'is_hwaseong_pay': isHwaseongPay,
+      if (isKonapay != null) 'is_konapay': isKonapay,
       if (category != null) 'category': category,
     });
   }

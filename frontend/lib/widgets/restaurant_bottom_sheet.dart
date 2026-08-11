@@ -8,9 +8,8 @@ class RestaurantBottomSheet extends StatelessWidget {
 
   const RestaurantBottomSheet({super.key, required this.restaurant});
 
-  // 마커 색상 결정
   Color get markerColor {
-    if (restaurant.isHwaseongPay) return AppColors.markerPay;
+    if (restaurant.isKonapay) return AppColors.markerPay;
     return AppColors.markerDefault;
   }
 
@@ -56,7 +55,7 @@ class RestaurantBottomSheet extends StatelessWidget {
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        if (restaurant.isHwaseongPay) ...[
+                        if (restaurant.isKonapay) ...[
                           const SizedBox(width: 8),
                           _Badge('💳 화성페이', AppColors.markerPay),
                         ],
@@ -73,7 +72,7 @@ class RestaurantBottomSheet extends StatelessWidget {
                   ],
                 ),
               ),
-              _SourceBadge(restaurant.source),
+              if (restaurant.isMobeom) _Badge('🏆 모범음식점', Colors.blue),
             ],
           ),
 
@@ -164,29 +163,3 @@ class _Badge extends StatelessWidget {
   }
 }
 
-class _SourceBadge extends StatelessWidget {
-  final String source;
-  const _SourceBadge(this.source);
-
-  Color get color {
-    switch (source) {
-      case '모범음식점': return Colors.blue;
-      case '착한가격': return Colors.green;
-      case '로컬푸드': return Colors.orange;
-      default: return Colors.grey;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(source, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
-    );
-  }
-}

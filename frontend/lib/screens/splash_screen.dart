@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _controller.forward();
 
     Future.delayed(const Duration(milliseconds: 1200), () {
-      if (mounted) context.go('/map');
+      if (mounted) context.go('/home');
     });
   }
 

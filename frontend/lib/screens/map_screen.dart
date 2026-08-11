@@ -22,15 +22,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final SeasonalEvent? _todayEvent = getTodayEvent();
 
   List<Marker> _buildMarkers(List restaurants) {
-    return restaurants.map((r) {
-      // TODO: 커스텀 마커 이미지로 색상별 분기 처리
-      // 화성페이: markerPay / 절기: markerSeasonal / 축제: markerFestival
-      return Marker(
-        markerId: r.id.toString(),
-        latLng: LatLng(r.lat, r.lng),
-        markerImageSrc: '',
-      );
-    }).toList();
+    // TODO: 커스텀 마커 이미지로 색상별 분기 처리
+    // 화성페이: markerPay / 절기: markerSeasonal / 축제: markerFestival
+    return restaurants
+        .where((r) => r.lat != null && r.lng != null)
+        .map((r) => Marker(
+              markerId: r.id.toString(),
+              latLng: LatLng(r.lat!, r.lng!),
+            ))
+        .toList();
   }
 
   void _onMarkerTap(String markerId, LatLng latLng, int zoomLevel) {
@@ -100,23 +100,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ],
       ),
 
-      // 바텀 네비게이션
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        selectedLabelStyle: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 11),
-        unselectedLabelStyle: const TextStyle(fontSize: 11),
-        onTap: (i) {
-          if (i == 1) context.push('/festival');
-          if (i == 2) context.push('/profile');
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: '지도'),
-          BottomNavigationBarItem(icon: Icon(Icons.celebration_outlined), activeIcon: Icon(Icons.celebration), label: '축제·절기'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: '마이'),
-        ],
-      ),
     );
   }
 }

@@ -1,16 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/restaurant.dart';
 
-// 필터 상태
 class FilterState {
-  final bool hwaseongPay;
-  final String? tag; // 카공픽 | 10대픽 | 혼밥 | 가성비
+  final bool isKonapay;
+  final String? tag;
 
-  const FilterState({this.hwaseongPay = false, this.tag});
+  const FilterState({this.isKonapay = false, this.tag});
 
-  FilterState copyWith({bool? hwaseongPay, String? tag, bool clearTag = false}) {
+  FilterState copyWith({bool? isKonapay, String? tag, bool clearTag = false}) {
     return FilterState(
-      hwaseongPay: hwaseongPay ?? this.hwaseongPay,
+      isKonapay: isKonapay ?? this.isKonapay,
       tag: clearTag ? null : (tag ?? this.tag),
     );
   }
@@ -18,39 +17,52 @@ class FilterState {
 
 final filterProvider = StateProvider<FilterState>((ref) => const FilterState());
 
-// 목 데이터 (API 연결 전까지 사용)
 final mockRestaurants = [
   const Restaurant(
-    id: 1, name: '송산 포도밭 한정식', address: '화성시 서신면 전곡리 123',
-    lat: 37.1530, lng: 126.6890, category: '한식',
-    isHwaseongPay: true, source: '모범음식점', tags: ['가성비'],
+    id: 1, name: '화성순두부찌게 동탄점', address: '경기 화성시 효행구 봉담읍 하우로 51',
+    lat: 37.2010, lng: 127.0720, category: '한식',
+    isKonapay: true, isMobeom: true, tags: ['가성비', '10대픽'],
+    rating: 4.6, reviewCount: 122,
   ),
   const Restaurant(
-    id: 2, name: '동탄 삼계탕 전문점', address: '화성시 동탄면 방교리 45',
-    lat: 37.2010, lng: 127.0720, category: '한식',
-    isHwaseongPay: true, source: '착한가격', tags: ['혼밥', '가성비'],
+    id: 2, name: '카페테라이아', address: '경기 화성시 효행구 봉담읍 하우로 72',
+    lat: 37.1990, lng: 127.0690, category: '카페',
+    isKonapay: true, isMobeom: false, tags: ['카공픽'],
+    rating: 4.7, reviewCount: 95,
   ),
   const Restaurant(
     id: 3, name: '제부도 조개구이', address: '화성시 서신면 제부리 78',
     lat: 37.1890, lng: 126.6340, category: '해산물',
-    isHwaseongPay: false, source: '모범음식점', tags: [],
+    isKonapay: false, isMobeom: true, tags: [],
+    rating: 4.4, reviewCount: 58,
   ),
   const Restaurant(
-    id: 4, name: '병점 카페 라운지', address: '화성시 병점동 234',
-    lat: 37.2200, lng: 127.0350, category: '카페',
-    isHwaseongPay: true, source: '착한가격', tags: ['카공픽', '10대픽'],
+    id: 4, name: '바베큐 앤 칩스', address: '화성시 병점동 234',
+    lat: 37.2200, lng: 127.0350, category: '양식',
+    isKonapay: true, isMobeom: false, tags: ['가성비'],
+    rating: 4.2, reviewCount: 11,
   ),
   const Restaurant(
-    id: 5, name: '로컬푸드 직매장 식당', address: '화성시 향남읍 발안리 56',
-    lat: 37.1740, lng: 126.9810, category: '한식',
-    isHwaseongPay: false, source: '로컬푸드', tags: ['가성비'],
+    id: 5, name: '이탈리안 브런치', address: '화성시 향남읍 발안리 56',
+    lat: 37.1740, lng: 126.9810, category: '브런치',
+    isKonapay: false, isMobeom: false, tags: ['카공픽', '혼밥'],
+    rating: 4.5, reviewCount: 37,
+  ),
+  const Restaurant(
+    id: 6, name: '송산 포도밭 한정식', address: '화성시 서신면 전곡리 123',
+    lat: 37.1530, lng: 126.6890, category: '한식',
+    isKonapay: true, isMobeom: true, tags: ['가성비'],
+    rating: 4.8, reviewCount: 203,
   ),
 ];
+
+// 새로 오픈한 가게 (reviewCount 적은 것 기준)
+final newRestaurants = mockRestaurants.where((r) => r.reviewCount < 40).toList();
 
 final restaurantProvider = Provider<List<Restaurant>>((ref) {
   final filter = ref.watch(filterProvider);
   return mockRestaurants.where((r) {
-    if (filter.hwaseongPay && !r.isHwaseongPay) return false;
+    if (filter.isKonapay && !r.isKonapay) return false;
     if (filter.tag != null && !r.tags.contains(filter.tag)) return false;
     return true;
   }).toList();

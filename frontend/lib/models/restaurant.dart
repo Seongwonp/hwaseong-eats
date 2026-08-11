@@ -2,34 +2,43 @@ class Restaurant {
   final int id;
   final String name;
   final String address;
-  final double lat;
-  final double lng;
-  final String category;
-  final bool isHwaseongPay;
-  final String source; // 모범음식점 | 착한가격 | 로컬푸드
-  final List<String> tags; // 카공픽 | 10대픽 | 혼밥 | 가성비
+  final double? lat;
+  final double? lng;
+  final String? category;
+  final String? phone;
+  final bool isKonapay;
+  final bool isMobeom;
+  final List<String> tags;
+  final double? rating;
+  final int reviewCount;
 
   const Restaurant({
     required this.id,
     required this.name,
     required this.address,
-    required this.lat,
-    required this.lng,
-    required this.category,
-    required this.isHwaseongPay,
-    required this.source,
+    this.lat,
+    this.lng,
+    this.category,
+    this.phone,
+    required this.isKonapay,
+    required this.isMobeom,
     required this.tags,
+    this.rating,
+    this.reviewCount = 0,
   });
 
   factory Restaurant.fromJson(Map<String, dynamic> json) => Restaurant(
         id: json['id'],
         name: json['name'],
         address: json['address'] ?? '',
-        lat: (json['lat'] as num).toDouble(),
-        lng: (json['lng'] as num).toDouble(),
-        category: json['category'] ?? '',
-        isHwaseongPay: json['is_hwaseong_pay'] ?? false,
-        source: json['source'] ?? '',
+        lat: json['lat'] != null ? (json['lat'] as num).toDouble() : null,
+        lng: json['lng'] != null ? (json['lng'] as num).toDouble() : null,
+        category: json['category'],
+        phone: json['phone'],
+        isKonapay: json['is_konapay'] ?? false,
+        isMobeom: json['is_mobeom'] ?? false,
         tags: List<String>.from(json['tags'] ?? []),
+        rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
+        reviewCount: json['review_count'] ?? 0,
       );
 }

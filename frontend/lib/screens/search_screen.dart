@@ -138,7 +138,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           title: Text(r.name, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 15)),
           subtitle: Text(r.address, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          trailing: r.isHwaseongPay
+          trailing: r.isKonapay
               ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(

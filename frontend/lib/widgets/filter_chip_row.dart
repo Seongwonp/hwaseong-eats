@@ -18,9 +18,9 @@ class FilterChipRow extends ConsumerWidget {
           _FilterChip(
             label: '화성페이',
             icon: '💳',
-            selected: filter.hwaseongPay,
+            selected: filter.isKonapay,
             onTap: () => ref.read(filterProvider.notifier).update(
-                  (s) => s.copyWith(hwaseongPay: !s.hwaseongPay),
+                  (s) => s.copyWith(isKonapay: !s.isKonapay),
                 ),
           ),
           const SizedBox(width: 8),
