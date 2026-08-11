@@ -33,7 +33,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (_query.isEmpty) return [];
     return all.where((r) =>
       r.name.contains(_query) ||
-      r.category.contains(_query) ||
+      (r.category?.contains(_query) ?? false) ||
       r.tags.any((t) => t.contains(_query))
     ).toList();
   }
