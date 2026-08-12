@@ -86,23 +86,22 @@ hwaseong-eats/
 │       └── providers/               # Riverpod 전역 상태관리
 │
 ├── backend/                         # FastAPI 서버 (Render 배포)
+│   ├── README.md                    # 백엔드 실행법·API 명세
 │   ├── pyproject.toml               # uv 패키지 관리
-│   ├── alembic.ini                  # Alembic 설정
-│   ├── .env.example                 # 환경변수 예시
-│   ├── alembic/                     # DB 마이그레이션
-│   │   ├── env.py
-│   │   ├── script.py.mako
-│   │   └── versions/                # 마이그레이션 파일 (자동 생성)
+│   ├── alembic/versions/            # DB 마이그레이션
+│   ├── tests/                       # 테스트 94개
 │   └── app/
 │       ├── main.py                  # FastAPI 앱 진입점
 │       ├── database.py              # DB 연결, 세션 관리
+│       ├── core/                    # 상수, 인증, 요청제한, 재시도
 │       ├── models/                  # SQLAlchemy 테이블 정의
 │       ├── schemas/                 # Pydantic 요청·응답 스키마
 │       ├── routers/                 # API 엔드포인트
-│       └── services/                # 비즈니스 로직, 데이터 파이프라인
+│       └── services/                # 데이터 수집·지오코딩·포인트
 │
 └── docs/                            # 개발 가이드 문서
     ├── 시스템아키텍처.md
+    ├── 백엔드-작업기록.md            # 작업 내역·판단 근거·남은 과제
     ├── backend-setup.md             # uv 설치 및 환경 세팅
     ├── sqlalchemy-guide.md          # SQLAlchemy 사용법
     ├── alembic-guide.md             # 마이그레이션 가이드
@@ -123,7 +122,7 @@ uv sync
 
 # 2. 환경변수 설정
 cp .env.example .env
-# .env 파일 열어서 DB URL, API 키 입력
+# .env 파일 열어서 DATABASE_URL, JWT_SECRET 입력
 
 # 3. DB 마이그레이션
 uv run alembic upgrade head
@@ -133,6 +132,13 @@ uv run uvicorn app.main:app --reload
 ```
 
 API 문서: http://localhost:8000/docs
+자세한 내용은 [backend/README.md](backend/README.md)
+
+**운영 서버가 이미 떠 있어서 프론트는 이걸 그대로 쓰면 된다.**
+
+```
+https://hwaseong-eats-api.onrender.com
+```
 
 ### 프론트엔드
 
@@ -165,8 +171,24 @@ feat/기능명  ← 기능 개발 후 dev로 PR
 
 ---
 
+## 진행 상황
+
+| 영역 | 상태 |
+|---|---|
+| 백엔드 DB·데이터 | ✅ 화성시 업소 48,606건, 좌표 27,387건 |
+| 음식점 조회 API | ✅ 필터·검색·거리순 |
+| 회원가입·로그인 | ✅ 이메일 + 비밀번호 |
+| 식사평·포인트 | ✅ 화성인증 시 500P |
+| 리워드 (전환) | ⬜ |
+| 절기·축제 | ⬜ 프론트 하드코딩 중 |
+| 프론트 연동 | ⬜ |
+
+---
+
 ## 문서
 
+- [백엔드 README](backend/README.md) — 실행법·API 명세
+- [백엔드 작업기록](docs/백엔드-작업기록.md) — 작업 내역·판단 근거·남은 과제
 - [시스템 아키텍처](docs/시스템아키텍처.md)
 - [백엔드 세팅 가이드](docs/backend-setup.md)
 - [SQLAlchemy 가이드](docs/sqlalchemy-guide.md)
