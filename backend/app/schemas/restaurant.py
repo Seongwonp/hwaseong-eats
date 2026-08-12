@@ -11,7 +11,7 @@ class RestaurantResponse(BaseModel):
     category: str | None
     is_konapay: bool
     is_mobeom: bool
-    tags: list[str] | None
+    tags: list[str] | None  # 현재 비어 있음. 식사평 기반으로 채울 자리
 
     # 지도 카드에 "★ 4.6 (122)" 로 쓰인다.
     # 별점을 안 남긴 식사평도 있어서 평균은 별점이 있는 것만, 개수는 전체를 센다.

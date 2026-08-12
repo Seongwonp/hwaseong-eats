@@ -86,7 +86,6 @@ def list_restaurants(
     is_konapay: bool | None = Query(None, description="화성페이 가맹점만"),
     is_mobeom: bool | None = Query(None, description="모범음식점만"),
     category: str | None = Query(None, description="업종명 (예: 일반음식점)"),
-    tag: str | None = Query(None, description="태그 (예: 카공픽)"),
     q: str | None = Query(None, description="상호명 검색"),
     food_only: bool = Query(True, description="음식 업종만"),
     lat: float | None = Query(None, ge=-90, le=90, description="현재 위치 위도"),
@@ -111,8 +110,6 @@ def list_restaurants(
         filters.append(Restaurant.is_mobeom.is_(is_mobeom))
     if category:
         filters.append(Restaurant.category == category)
-    if tag:
-        filters.append(Restaurant.tags.any(tag))
     if q:
         filters.append(Restaurant.name.ilike(f"%{_escape_like(q)}%", escape="\\"))
 
