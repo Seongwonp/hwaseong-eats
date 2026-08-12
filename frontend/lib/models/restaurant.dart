@@ -38,7 +38,7 @@ class Restaurant {
         isKonapay: json['is_konapay'] ?? false,
         isMobeom: json['is_mobeom'] ?? false,
         tags: List<String>.from(json['tags'] ?? []),
-        rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
+        rating: json['avg_rating'] != null ? (json['avg_rating'] as num).toDouble() : null,
         reviewCount: json['review_count'] ?? 0,
       );
 }
