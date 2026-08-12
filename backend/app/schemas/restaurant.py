@@ -13,6 +13,11 @@ class RestaurantResponse(BaseModel):
     is_mobeom: bool
     tags: list[str] | None
 
+    # 지도 카드에 "★ 4.6 (122)" 로 쓰인다.
+    # 별점을 안 남긴 식사평도 있어서 평균은 별점이 있는 것만, 개수는 전체를 센다.
+    avg_rating: float | None = None
+    review_count: int = 0
+
     # 좌표 출처. 프론트가 정확도에 따라 표시를 달리하고 싶을 때 쓴다.
     geocode_status: str
 

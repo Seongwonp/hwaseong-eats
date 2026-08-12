@@ -67,6 +67,16 @@ curl "$API/restaurants?lat=37.2014&lng=127.0985&radius_km=1"
 
 `lat`/`lng` 을 주면 응답에 `distance_km` 이 채워지고 가까운 순으로 정렬된다.
 
+**응답에 평균 별점과 식사평 수가 함께 온다.** 지도 카드의 `★ 4.6 (122)` 용이다.
+
+```json
+{ "id": 2, "name": "본죽", "lat": 37.19, "lng": 127.09,
+  "avg_rating": 4.6, "review_count": 122, ... }
+```
+
+별점을 안 남긴 식사평도 있어서 **평균은 별점이 있는 것만, 개수는 전체**를 센다.
+식사평이 없으면 `avg_rating` 은 `null`, `review_count` 는 `0`.
+
 ### 인증
 
 | | 경로 | 설명 |
@@ -75,6 +85,8 @@ curl "$API/restaurants?lat=37.2014&lng=127.0985&radius_km=1"
 | `POST` | `/auth/login` | → 토큰 |
 | `GET` | `/auth/me` | 내 정보 |
 | `POST` | `/auth/verify` | 화성주민 인증 (6개월 유효) |
+| `GET` | `/auth/me/points` | 포인트 적립·사용 내역 |
+| `POST` | `/auth/me/points/exchange` | 화성페이 전환 |
 
 토큰은 `Authorization: Bearer <token>` 헤더로 보낸다. 유효기간 14일.
 
@@ -86,7 +98,21 @@ TOKEN=$(curl -s -X POST "$API/auth/signup" -H 'Content-Type: application/json' \
 curl "$API/auth/me" -H "Authorization: Bearer $TOKEN"
 ```
 
-로그인은 분당 5회, 가입은 분당 3회로 제한된다. 넘으면 `429`.
+로그인은 분당 5회, 가입은 분당 3회, 포인트 전환은 분당 10회로 제한된다. 넘으면 `429`.
+
+### 포인트
+
+```bash
+# 내역 (적립은 delta 양수, 사용은 음수)
+curl "$API/auth/me/points" -H "Authorization: Bearer $TOKEN"
+
+# 화성페이 전환 — 1,000P 단위, 1P = 1원
+curl -X POST "$API/auth/me/points/exchange" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"points":1000}'
+```
+
+잔액이 모자라면 `400`, 1,000P 단위가 아니면 `422`.
+실제 화성페이 지급 연동은 없다. 포인트 차감과 내역 기록까지만 한다.
 
 ### 식사평
 
@@ -152,7 +178,7 @@ uv run python -m app.services.geocode_refine # 겹친 좌표 재검증
 ## 테스트
 
 ```bash
-uv run pytest              # 전체 94개
+uv run pytest              # 전체 108개
 uv run pytest tests/test_matching.py   # DB 없이 도는 31개
 ```
 
