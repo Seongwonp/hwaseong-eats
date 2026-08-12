@@ -1,0 +1,31 @@
+# Render 배포 설정 (Blueprint)
+#
+# Render 대시보드에서 New > Blueprint 로 이 파일을 읽히면 웹 서비스와 DB 가 함께 생성된다.
+# 수동으로 만들 거면 아래 buildCommand / startCommand 를 그대로 복사해 넣으면 된다.
+
+services:
+  - type: web
+    name: hwaseong-eats-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    # Render 는 기본이 pip 이라 uv 를 먼저 깐다. --frozen 으로 uv.lock 을 그대로 쓴다.
+    buildCommand: pip install uv && uv sync --frozen
+    # 마이그레이션은 빌드가 아니라 기동 시점에 돌린다. 빌드 단계에서는 DB 가
+    # 아직 안 떠 있을 수 있다. alembic upgrade 는 여러 번 돌려도 안전하다.
+    startCommand: uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hwaseong-food-db
+          property: connectionString
+      # 지오코딩 배치를 서버에서 돌릴 때만 필요하다. 대시보드에서 직접 넣는다.
+      - key: KAKAO_API_KEY
+        sync: false
+
+databases:
+  - name: hwaseong-food-db
+    plan: free
+    databaseName: hwaseong_food
+    user: hwaseong

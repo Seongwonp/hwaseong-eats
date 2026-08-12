@@ -1,0 +1,42 @@
+from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+
+def _normalize_email(value: str) -> str:
+    """대소문자만 다른 주소로 계정이 갈라지는 걸 막는다.
+
+    RFC 상 local part 는 대소문자를 구분하지만 실제로 구분해서 쓰는 메일 서비스는 없다.
+    """
+    return value.strip().lower()
+
+
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=72)
+    nickname: str = Field(min_length=2, max_length=10)
+
+    _norm = field_validator("email")(lambda cls, v: _normalize_email(v))
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+    _norm = field_validator("email")(lambda cls, v: _normalize_email(v))
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: EmailStr
+    nickname: str
+    is_resident_verified: bool
+    resident_expires_at: datetime | None
+    points: int
+
+    model_config = {"from_attributes": True}
