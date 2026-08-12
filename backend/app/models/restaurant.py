@@ -61,6 +61,14 @@ class Restaurant(Base):
         # 지도에서 가장 많이 거는 필터. 없으면 4만 행을 Seq Scan 한다.
         Index("ix_restaurants_category", "category"),
         Index("ix_restaurants_geocode_status", "geocode_status"),
+        # ILIKE '%...%' 는 일반 인덱스를 못 탄다. 운영에서 314ms -> 0.3ms.
+        # 로컬 DB 로케일이 C 면 한글 트라이그램이 안 만들어져 효과가 안 보인다.
+        Index(
+            "ix_restaurants_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
         # 코나페이 원본 키가 없는 행(모범음식점 단독)은 상호명+주소로 중복을 막는다.
         Index(
             "uq_restaurants_name_address_no_seq",
