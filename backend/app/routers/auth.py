@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
-from app.core.ratelimit import LOGIN_LIMIT, SIGNUP_LIMIT, limiter
+from app.core.ratelimit import EXCHANGE_LIMIT, LOGIN_LIMIT, SIGNUP_LIMIT, limiter
 from app.core.security import (
     PasswordTooLongError,
     create_access_token,
@@ -14,8 +14,14 @@ from app.core.security import (
     verify_password,
 )
 from app.database import get_db
-from app.models import User
+from app.models import PointHistory, User
 from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse, UserResponse
+from app.schemas.point import (
+    ExchangeRequest,
+    ExchangeResponse,
+    PointHistoryListResponse,
+)
+from app.services.points import InsufficientPointsError, add_points
 
 router = APIRouter()
 
@@ -93,3 +99,54 @@ def verify_resident(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.get("/me/points", response_model=PointHistoryListResponse)
+def point_history(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """포인트 적립·사용 내역. 최신순."""
+    total = db.scalar(
+        select(func.count()).select_from(PointHistory).where(PointHistory.user_id == user.id)
+    )
+    items = db.scalars(
+        select(PointHistory)
+        .where(PointHistory.user_id == user.id)
+        .order_by(PointHistory.created_at.desc(), PointHistory.id.desc())
+        .limit(limit)
+        .offset(offset)
+    ).all()
+    return PointHistoryListResponse(total=total, balance=user.points, items=items)
+
+
+@router.post("/me/points/exchange", response_model=ExchangeResponse)
+@limiter.limit(EXCHANGE_LIMIT)
+def exchange_points(
+    request: Request,
+    body: ExchangeRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """포인트를 화성페이로 전환한다. 1,000P = 1,000원.
+
+    실제 화성페이 지급 연동은 없다. 포인트 차감과 내역 기록까지만 한다.
+    """
+    try:
+        add_points(db, user.id, -body.points, "화성페이 전환")
+    except InsufficientPointsError as e:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"포인트가 부족합니다 (보유 {user.points}P, 요청 {body.points}P)",
+        ) from e
+
+    db.commit()
+    db.refresh(user)
+
+    return ExchangeResponse(
+        exchanged_points=body.points,
+        exchanged_krw=body.points,  # 1P = 1원
+        balance=user.points,
+    )

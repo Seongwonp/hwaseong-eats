@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.constants import FOOD_CATEGORIES, VISIBLE_GEOCODE_STATUSES
 from app.database import get_db
-from app.models import Restaurant
+from app.models import Restaurant, Review
 from app.schemas.restaurant import RestaurantListResponse, RestaurantResponse
 
 router = APIRouter()
@@ -36,6 +36,36 @@ def _escape_like(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+def _rating_columns():
+    """음식점별 평균 별점과 식사평 수.
+
+    조회된 행에 대해서만 인덱스로 찾으므로(reviews.restaurant_id) 목록 전체를
+    미리 집계하지 않는다. 별점을 안 남긴 식사평이 있어 평균과 개수의 모집단이 다르다.
+    """
+    avg = (
+        select(func.round(func.avg(Review.rating), 1).cast(Float))
+        .where(Review.restaurant_id == Restaurant.id)
+        .scalar_subquery()
+    )
+    count = (
+        select(func.count())
+        .select_from(Review)
+        .where(Review.restaurant_id == Restaurant.id)
+        .scalar_subquery()
+    )
+    return avg.label("avg_rating"), count.label("review_count")
+
+
+def _build(row_restaurant, avg_rating, review_count, distance=None) -> RestaurantResponse:
+    return RestaurantResponse.model_validate(row_restaurant).model_copy(
+        update={
+            "avg_rating": float(avg_rating) if avg_rating is not None else None,
+            "review_count": review_count or 0,
+            "distance_km": round(distance, 3) if distance is not None else None,
+        }
+    )
+
+
 def _distance_km(lat: float, lng: float):
     """하버사인. PostGIS 없이 쓰려고 SQL 식으로 직접 짠다.
 
@@ -56,7 +86,6 @@ def list_restaurants(
     is_konapay: bool | None = Query(None, description="화성페이 가맹점만"),
     is_mobeom: bool | None = Query(None, description="모범음식점만"),
     category: str | None = Query(None, description="업종명 (예: 일반음식점)"),
-    tag: str | None = Query(None, description="태그 (예: 카공픽)"),
     q: str | None = Query(None, description="상호명 검색"),
     food_only: bool = Query(True, description="음식 업종만"),
     lat: float | None = Query(None, ge=-90, le=90, description="현재 위치 위도"),
@@ -81,8 +110,6 @@ def list_restaurants(
         filters.append(Restaurant.is_mobeom.is_(is_mobeom))
     if category:
         filters.append(Restaurant.category == category)
-    if tag:
-        filters.append(Restaurant.tags.any(tag))
     if q:
         filters.append(Restaurant.name.ilike(f"%{_escape_like(q)}%", escape="\\"))
 
@@ -98,23 +125,25 @@ def list_restaurants(
 
     total = db.scalar(select(func.count()).select_from(Restaurant).where(*filters))
 
+    avg_rating, review_count = _rating_columns()
+
     if lat is not None:
         distance = _distance_km(lat, lng)
-        stmt = select(Restaurant, distance.label("distance_km")).where(*filters)
-        stmt = stmt.order_by("distance_km")
+        stmt = (
+            select(Restaurant, avg_rating, review_count, distance.label("distance_km"))
+            .where(*filters)
+            .order_by("distance_km")
+        )
         rows = db.execute(stmt.limit(limit).offset(offset)).all()
-        items = [
-            RestaurantResponse.model_validate(r).model_copy(
-                update={"distance_km": round(d, 3)}
-            )
-            for r, d in rows
-        ]
+        items = [_build(r, a, c, d) for r, a, c, d in rows]
     else:
-        stmt = select(Restaurant).where(*filters).order_by(Restaurant.id)
-        items = [
-            RestaurantResponse.model_validate(r)
-            for r in db.scalars(stmt.limit(limit).offset(offset))
-        ]
+        stmt = (
+            select(Restaurant, avg_rating, review_count)
+            .where(*filters)
+            .order_by(Restaurant.id)
+        )
+        rows = db.execute(stmt.limit(limit).offset(offset)).all()
+        items = [_build(r, a, c) for r, a, c in rows]
 
     return RestaurantListResponse(total=total, items=items)
 
@@ -126,9 +155,12 @@ def get_restaurant(restaurant_id: int, db: Session = Depends(get_db)):
     좌표가 없거나 unverified 인 행을 그냥 돌려주면 응답 스키마의 lat/lng 검증에
     걸려 500 이 난다. 목록에 안 나오는 건 상세로도 안 보이는 게 맞다.
     """
-    item = db.scalar(
-        select(Restaurant).where(Restaurant.id == restaurant_id, *_visible())
-    )
-    if not item:
+    avg_rating, review_count = _rating_columns()
+    row = db.execute(
+        select(Restaurant, avg_rating, review_count).where(
+            Restaurant.id == restaurant_id, *_visible()
+        )
+    ).first()
+    if row is None:
         raise HTTPException(404, "음식점을 찾을 수 없습니다")
-    return item
+    return _build(*row)

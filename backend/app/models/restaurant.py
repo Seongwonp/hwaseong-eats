@@ -41,6 +41,9 @@ class Restaurant(Base):
         Boolean, nullable=False, default=False, server_default="false"
     )
 
+    # 지도 필터는 is_konapay / is_mobeom 두 개만 쓴다.
+    # 목적별 태그(#카공픽 등)는 공공데이터에 없어 추정할 수밖에 없었고, 근거가 약해서 뺐다.
+    # 컬럼은 남겨둔다 — 식사평이 쌓이면 거기서 집계해 채울 자리다.
     tags: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
 
     # 코나페이 원본 키. 월 1회 재수집 시 이 값으로 UPSERT 한다.

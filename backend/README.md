@@ -43,6 +43,9 @@ uv run uvicorn app.main:app --reload     # 서버 실행
 | `GET` | `/restaurants` | 목록 조회 |
 | `GET` | `/restaurants/{id}` | 단건 조회 |
 
+지도 필터는 **화성페이(`is_konapay`)와 모범음식점(`is_mobeom`) 두 개**다.
+목적별 태그(`#카공픽` 등)는 공공데이터에 없어 추정할 수밖에 없었고, 근거가 약해서 뺐다.
+
 **쿼리 파라미터**
 
 | 이름 | 예 | 설명 |
@@ -50,7 +53,6 @@ uv run uvicorn app.main:app --reload     # 서버 실행
 | `is_konapay` | `true` | 화성페이 가맹점만 |
 | `is_mobeom` | `true` | 모범음식점만 |
 | `category` | `일반음식점` | 업종 |
-| `tag` | `카공픽` | 태그 (아직 데이터 없음) |
 | `q` | `본죽` | 상호명 검색 |
 | `food_only` | `true` (기본) | 음식 업종만 |
 | `lat`, `lng` | `37.2014`, `127.0985` | 현재 위치. 주면 거리순 정렬 |
@@ -67,6 +69,16 @@ curl "$API/restaurants?lat=37.2014&lng=127.0985&radius_km=1"
 
 `lat`/`lng` 을 주면 응답에 `distance_km` 이 채워지고 가까운 순으로 정렬된다.
 
+**응답에 평균 별점과 식사평 수가 함께 온다.** 지도 카드의 `★ 4.6 (122)` 용이다.
+
+```json
+{ "id": 2, "name": "본죽", "lat": 37.19, "lng": 127.09,
+  "avg_rating": 4.6, "review_count": 122, ... }
+```
+
+별점을 안 남긴 식사평도 있어서 **평균은 별점이 있는 것만, 개수는 전체**를 센다.
+식사평이 없으면 `avg_rating` 은 `null`, `review_count` 는 `0`.
+
 ### 인증
 
 | | 경로 | 설명 |
@@ -75,6 +87,8 @@ curl "$API/restaurants?lat=37.2014&lng=127.0985&radius_km=1"
 | `POST` | `/auth/login` | → 토큰 |
 | `GET` | `/auth/me` | 내 정보 |
 | `POST` | `/auth/verify` | 화성주민 인증 (6개월 유효) |
+| `GET` | `/auth/me/points` | 포인트 적립·사용 내역 |
+| `POST` | `/auth/me/points/exchange` | 화성페이 전환 |
 
 토큰은 `Authorization: Bearer <token>` 헤더로 보낸다. 유효기간 14일.
 
@@ -86,7 +100,42 @@ TOKEN=$(curl -s -X POST "$API/auth/signup" -H 'Content-Type: application/json' \
 curl "$API/auth/me" -H "Authorization: Bearer $TOKEN"
 ```
 
-로그인은 분당 5회, 가입은 분당 3회로 제한된다. 넘으면 `429`.
+로그인은 분당 5회, 가입은 분당 3회, 포인트 전환은 분당 10회로 제한된다. 넘으면 `429`.
+
+### 포인트
+
+```bash
+# 내역 (적립은 delta 양수, 사용은 음수)
+curl "$API/auth/me/points" -H "Authorization: Bearer $TOKEN"
+
+# 화성페이 전환 — 1,000P 단위, 1P = 1원
+curl -X POST "$API/auth/me/points/exchange" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"points":1000}'
+```
+
+잔액이 모자라면 `400`, 1,000P 단위가 아니면 `422`.
+실제 화성페이 지급 연동은 없다. 포인트 차감과 내역 기록까지만 한다.
+
+### 절기·축제
+
+| | 경로 | 설명 |
+|---|---|---|
+| `GET` | `/festivals` | 목록 (`event_type`, `upcoming_only`) |
+| `GET` | `/festivals/today` | 오늘 띄울 것 |
+| `GET` | `/festivals/{id}` | 단건 |
+
+```bash
+curl "$API/festivals/today"
+→ { "date":"2026-08-12",
+    "primary": { "name":"말복", "d_day":2, "food_keyword":"삼계탕·장어", "is_active":true },
+    "items": [ ... ] }
+```
+
+`is_active` 는 서버가 판단한다 — 기념일 ±3일, 축제는 기간 중. 기간이 끝나면 자동으로 빠지므로
+프론트가 날짜 계산을 하지 않아도 된다(기획서 p.8).
+
+축제만 `lat`·`lng`·`radius_km`(3km)을 갖는다. 절기는 지역이 없다.
+`primary` 는 배너에 띄울 하나로, 절기와 축제가 겹치면 축제를 앞세운다.
 
 ### 식사평
 
@@ -111,6 +160,10 @@ curl "$API/auth/me" -H "Authorization: Bearer $TOKEN"
 | 코나페이 (경기지역화폐) | 48,574 | 내부 API 호출 |
 | 모범음식점 (공공데이터 15153027) | 95 | 겹치면 `is_mobeom` 만 세움 |
 | 소상공인 상가정보 (15083033) | — | 좌표 채우는 용도 |
+
+`seasonal_events` 17건 — 절기 7 · 명절 2 · 축제 8. 절기는 [한국천문연구원 특일 정보](https://holidays.dist.be)
+(키 불필요), 축제는 [전국문화축제표준데이터](https://www.data.go.kr/data/15013104/standard.do) CSV 에서
+화성시만 뽑는다. 같은 축제가 회차 표기만 다르게 두 번 실려 있어 이름을 정규화해 중복을 지운다.
 
 두 데이터를 하나로 뭉치지 않고 `is_konapay` / `is_mobeom` 플래그를 세운다.
 지도에서 칩 조합만으로 필터가 떨어지게 하기 위해서다.
@@ -139,6 +192,7 @@ uv run python -m app.services.mobeom         # 모범음식점 병합
 uv run python -m app.services.sangga         # 상가정보 좌표 (data/ 에 zip 필요)
 uv run python -m app.services.geocoding      # 카카오 지오코딩 (약 18분)
 uv run python -m app.services.geocode_refine # 겹친 좌표 재검증
+uv run python -m app.services.seasonal        # 절기·명절·축제
 ```
 
 전부 여러 번 돌려도 안전하다. 코나페이는 원본 키 기준 UPSERT, 모범음식점은 이미 있으면
@@ -152,7 +206,7 @@ uv run python -m app.services.geocode_refine # 겹친 좌표 재검증
 ## 테스트
 
 ```bash
-uv run pytest              # 전체 94개
+uv run pytest              # 전체 128개
 uv run pytest tests/test_matching.py   # DB 없이 도는 31개
 ```
 
@@ -201,8 +255,10 @@ Start   uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.
 **무료 PostgreSQL 이 2026-09-11 에 만료된다.** 본선(9/17)보다 먼저다.
 9월 초에 새 DB를 만들어 옮기거나 유료로 올려야 한다. 덤프가 2MB 남짓이라 몇 분이면 된다.
 
-**`restaurants.tags` 가 전부 비어 있다.** 프론트 지도의 `#카공픽 #10대픽 #혼밥 #가성비`
-필터칩을 누르면 빈 화면이 나온다. 공공데이터에 없는 정보라 따로 채워야 한다.
+**목적별 태그는 뺐다.** `#카공픽 #10대픽 #혼밥 #가성비` 는 공공데이터에 없어 상호명·업종으로
+추정할 수밖에 없었는데, 근거가 약해 지도 필터에서 제외했다. 지도 필터는 실제 데이터가 있는
+화성페이·모범음식점 두 개만 쓴다. `restaurants.tags` 컬럼은 남겨뒀다 — 식사평이 쌓이면
+거기서 집계해 채울 자리다.
 
 **로컬과 운영 DB의 로케일이 다르다.** 로컬은 `C`, Render는 `en_US.UTF8` 이다.
 한글 정렬 순서와 `pg_trgm` 동작이 달라서, 검색 성능은 로컬에서 재면 안 된다.

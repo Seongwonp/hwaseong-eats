@@ -17,3 +17,6 @@ limiter = Limiter(key_func=get_remote_address)
 # 로그인 실패를 반복해서 비밀번호를 찾아내는 걸 막는 선.
 LOGIN_LIMIT = "5/minute"
 SIGNUP_LIMIT = "3/minute"
+
+# 포인트 전환은 잔액을 실제로 깎는다. 실수든 악의든 연타를 막는다.
+EXCHANGE_LIMIT = "10/minute"
