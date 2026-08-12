@@ -2,168 +2,407 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
+import '../core/responsive.dart';
 import '../providers/auth_provider.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _notificationEnabled = true;
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
 
-    // 비로그인 상태
-    if (!auth.isLoggedIn) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('🍽️', style: TextStyle(fontSize: 48)),
-              const SizedBox(height: 16),
-              const Text('로그인 후 이용할 수 있어요', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 16)),
-              const SizedBox(height: 8),
-              Text('식사평 등록, 리워드 적립이 가능해요', style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.5))),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: () => context.push('/login'),
-                child: const Text('로그인하기', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => context.push('/signup'),
-                child: const Text('회원가입', style: TextStyle(color: AppColors.primary)),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final nickname = auth.nickname ?? '화성 주민';
-    final points = auth.points;
-
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        title: const Text('마이페이지', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 16)),
-        automaticallyImplyLeading: false,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // 프로필 헤더
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
-              color: Colors.white,
-              child: Column(
-                children: [
-                  Container(
-                    width: 72, height: 72,
-                    decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                    alignment: Alignment.center,
-                    child: const Text('🍚', style: TextStyle(fontSize: 32)),
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── 타이틀 ────────────────────────────────────
+              Padding(
+                padding: EdgeInsets.fromLTRB(context.hPad, 20, context.hPad, 16),
+                child: const Text(
+                  '내 정보',
+                  style: TextStyle(
+                    fontFamily: 'NotoSerifKR',
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(nickname, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 18)),
-                      if (auth.isVerified) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+
+              // ── 프로필 카드 ────────────────────────────────
+              _Card(
+                child: auth.isLoggedIn
+                    ? _LoggedInProfile(auth: auth)
+                    : _LoggedOutProfile(),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── 로그인 상태 전용 섹션들 ────────────────────
+              if (auth.isLoggedIn) ...[
+                // 내 포인트
+                _Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(context.hPad),
+                    child: Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '내 포인트',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.star_rounded,
+                                    size: 22, color: Color(0xFFFFBB33)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${_formatPoints(auth.points)} P',
+                                  style: const TextStyle(
+                                    fontFamily: 'NotoSerifKR',
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              '1,000P부터 교환 가능',
+                              style: TextStyle(
+                                  fontSize: 12, color: Color(0xFF999999)),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        OutlinedButton(
+                          onPressed: () => context.push('/reward'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textPrimary,
+                            side: const BorderSide(color: Color(0xFFCCCCCC)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
                           ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('🏅', style: TextStyle(fontSize: 11)),
-                              SizedBox(width: 3),
-                              Text('화성인증', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
-                            ],
+                          child: const Text('교환하기',
+                              style: TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // 인증
+                _SectionLabel(label: '인증'),
+                _Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(context.hPad),
+                    child: Row(
+                      children: [
+                        // 방패 아이콘
+                        Container(
+                          width: 48, height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.verified_user,
+                              color: AppColors.primary, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '화성 시민 인증',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              auth.isVerified
+                                  ? '2027-02-01까지 유효'
+                                  : '인증이 필요해요',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Color(0xFF999999)),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        OutlinedButton(
+                          onPressed: () => context.push('/verify'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textPrimary,
+                            side: const BorderSide(color: Color(0xFFCCCCCC)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                          ),
+                          child: Text(
+                            auth.isVerified ? '갱신하기' : '인증하기',
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  GestureDetector(
-                    onTap: () => context.push('/reward'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primary, Color(0xFFFF7A33)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🪙', style: TextStyle(fontSize: 20)),
-                          const SizedBox(width: 10),
-                          Text('$points P', style: const TextStyle(fontFamily: 'NotoSerifKR', fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.chevron_right, color: Colors.white70, size: 18),
-                        ],
-                      ),
                     ),
                   ),
-                ],
+                ),
+
+                const SizedBox(height: 12),
+              ],
+
+              // ── 설정 ──────────────────────────────────────
+              _SectionLabel(label: '설정'),
+              _Card(
+                child: Column(
+                  children: [
+                    // 로그인 상태에서만 보이는 항목
+                    if (auth.isLoggedIn) ...[
+                      _NavRow(
+                        label: '내가 쓴 식사평',
+                        onTap: () => context.push('/my-reviews'),
+                      ),
+                      _Divider(),
+                      _NavRow(
+                        label: '저장한 가게',
+                        onTap: () => context.push('/saved-restaurants'),
+                      ),
+                      _Divider(),
+                    ],
+                    // 알림 토글 (항상)
+                    _ToggleRow(
+                      label: '알림',
+                      value: _notificationEnabled,
+                      onChanged: (v) => setState(() => _notificationEnabled = v),
+                    ),
+                    _Divider(),
+                    _NavRow(
+                      label: '개인정보 처리방침',
+                      onTap: () => context.push('/privacy-policy'),
+                    ),
+                    _Divider(),
+                    _NavRow(
+                      label: '위치정보 이용약관',
+                      onTap: () => _showSnack('위치정보 이용약관'),
+                    ),
+                    _Divider(),
+                    _NavRow(
+                      label: '데이터 출처 및 라이선스',
+                      onTap: () => _showSnack('데이터 출처 및 라이선스'),
+                    ),
+                  ],
+                ),
               ),
+
+              const SizedBox(height: 12),
+
+              // ── 회원 탈퇴 (로그인만) ──────────────────────
+              if (auth.isLoggedIn) ...[
+                _Card(
+                  child: _NavRow(
+                    label: '회원 탈퇴',
+                    labelColor: AppColors.primary,
+                    icon: Icons.info_outline,
+                    iconColor: AppColors.primary,
+                    onTap: () => _confirmWithdraw(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // 로그아웃
+                Center(
+                  child: TextButton(
+                    onPressed: () async {
+                      await ref.read(authProvider.notifier).logout();
+                    },
+                    child: const Text(
+                      '로그아웃',
+                      style: TextStyle(fontSize: 13, color: Color(0xFFAAAAAA)),
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatPoints(int p) {
+    if (p >= 1000) {
+      final k = p ~/ 1000;
+      final r = p % 1000;
+      return r == 0 ? '$k,000' : '$k,${r.toString().padLeft(3, '0')}';
+    }
+    return '$p';
+  }
+
+  void _showSnack(String label) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text('$label — 준비 중'),
+          duration: const Duration(seconds: 1)),
+    );
+  }
+
+  void _confirmWithdraw() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('회원 탈퇴',
+            style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+        content: const Text('탈퇴하면 모든 데이터가 삭제됩니다.\n정말 탈퇴하시겠어요?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(authProvider.notifier).logout();
+            },
+            child: const Text('탈퇴', style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 로그인 프로필 ─────────────────────────────────────────────────────
+
+class _LoggedInProfile extends StatelessWidget {
+  final AuthState auth;
+  const _LoggedInProfile({required this.auth});
+
+  @override
+  Widget build(BuildContext context) {
+    final nickname = auth.nickname ?? '화성 주민';
+    return Padding(
+      padding: EdgeInsets.all(context.hPad),
+      child: Row(
+        children: [
+          // 아바타
+          Container(
+            width: 52, height: 52,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFDDD0),
+              shape: BoxShape.circle,
             ),
+            child: const Icon(Icons.person, color: AppColors.primary, size: 30),
+          ),
+          const SizedBox(width: 14),
+          // 닉네임 + 정보
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nickname,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const Text(
+                  '동탄구  •  식사평 12개',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
+                ),
+              ],
+            ),
+          ),
+          OutlinedButton(
+            onPressed: () => _showSnack(context, '정보 수정'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: const BorderSide(color: Color(0xFFCCCCCC)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            ),
+            child: const Text('정보 수정',
+                style:
+                    TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
 
-            const SizedBox(height: 12),
+  void _showSnack(BuildContext context, String label) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text('$label — 준비 중'),
+          duration: const Duration(seconds: 1)),
+    );
+  }
+}
 
+// ── 비로그인 프로필 ───────────────────────────────────────────────────
+
+class _LoggedOutProfile extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/login'),
+      child: Padding(
+        padding: EdgeInsets.all(context.hPad),
+        child: Row(
+          children: [
             Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-              child: Row(
-                children: [
-                  _StatBox(label: '화성인증', value: auth.isVerified ? '✅' : '미완료'),
-                  _Divider(),
-                  _StatBox(label: '적립 포인트', value: '$points P'),
-                ],
+              width: 52, height: 52,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEEEEEE),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.person,
+                  color: Color(0xFFBBBBBB), size: 30),
+            ),
+            const SizedBox(width: 14),
+            const Text(
+              '로그인 해주세요.',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
             ),
-
-            const SizedBox(height: 12),
-
-            Container(
-              color: Colors.white,
-              child: Column(
-                children: [
-                  _MenuItem(icon: Icons.rate_review_outlined, label: '내 식사평', onTap: () {}),
-                  _MenuItem(icon: Icons.card_giftcard_outlined, label: '리워드 내역', onTap: () => context.push('/reward')),
-                  if (!auth.isVerified)
-                    _MenuItem(icon: Icons.verified_user_outlined, label: '화성주민 인증', onTap: () => context.push('/verify')),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Container(
-              color: Colors.white,
-              child: _MenuItem(
-                icon: Icons.logout,
-                label: '로그아웃',
-                color: Colors.red.shade300,
-                onTap: () async {
-                  await ref.read(authProvider.notifier).logout();
-                },
-              ),
-            ),
-
-            const SizedBox(height: 32),
+            const Spacer(),
+            const Icon(Icons.chevron_right,
+                color: Color(0xFFCCCCCC), size: 20),
           ],
         ),
       ),
@@ -171,20 +410,37 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _StatBox extends StatelessWidget {
-  final String label;
-  final String value;
-  const _StatBox({required this.label, required this.value});
+// ── 공통 위젯들 ───────────────────────────────────────────────────────
+
+class _Card extends StatelessWidget {
+  final Widget child;
+  const _Card({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(value, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 18)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        ],
+    return Container(
+      width: double.infinity,
+      color: Colors.white,
+      child: child,
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(context.hPad, 0, context.hPad, 8),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }
@@ -193,33 +449,85 @@ class _StatBox extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 32, color: Colors.grey.shade200);
+    return const Divider(
+        height: 1, thickness: 1, color: Color(0xFFF2F2F2), indent: 20, endIndent: 20);
   }
 }
 
-class _MenuItem extends StatelessWidget {
-  final IconData icon;
+class _NavRow extends StatelessWidget {
   final String label;
+  final Color? labelColor;
+  final IconData? icon;
+  final Color? iconColor;
   final VoidCallback onTap;
-  final Color? color;
 
-  const _MenuItem({required this.icon, required this.label, required this.onTap, this.color});
+  const _NavRow({
+    required this.label,
+    required this.onTap,
+    this.labelColor,
+    this.icon,
+    this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.textPrimary;
+    final color = labelColor ?? AppColors.textPrimary;
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: EdgeInsets.symmetric(horizontal: context.hPad, vertical: 16),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: c),
-            const SizedBox(width: 14),
-            Expanded(child: Text(label, style: TextStyle(fontSize: 14, color: c))),
-            Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade400),
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: iconColor ?? color),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: color)),
+            ),
+            Icon(Icons.chevron_right,
+                size: 18, color: color.withValues(alpha: 0.4)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ToggleRow extends StatelessWidget {
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ToggleRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: context.hPad, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary)),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppColors.primary,
+          ),
+        ],
       ),
     );
   }
