@@ -24,19 +24,14 @@ class FilterChipRow extends ConsumerWidget {
                 ),
           ),
           const SizedBox(width: 8),
-          ...['카공픽', '10대픽', '혼밥', '가성비'].map((tag) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _FilterChip(
-                  label: '#$tag',
-                  selected: filter.tag == tag,
-                  onTap: () => ref.read(filterProvider.notifier).update(
-                        (s) => s.copyWith(
-                          tag: s.tag == tag ? null : tag,
-                          clearTag: s.tag == tag,
-                        ),
-                      ),
+          _FilterChip(
+            label: '모범가게',
+            icon: '🏆',
+            selected: filter.isMobeom,
+            onTap: () => ref.read(filterProvider.notifier).update(
+                  (s) => s.copyWith(isMobeom: !s.isMobeom),
                 ),
-              )),
+          ),
         ],
       ),
     );

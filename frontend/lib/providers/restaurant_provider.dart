@@ -4,23 +4,28 @@ import '../services/api_service.dart';
 
 class FilterState {
   final bool isKonapay;
-  final String? tag;
+  final bool isMobeom;
+  final String? category; // 음식점 | 카페 | 편의점 | 대형마트 | null=전체
 
-  const FilterState({this.isKonapay = false, this.tag});
+  const FilterState({this.isKonapay = false, this.isMobeom = false, this.category});
 
-  FilterState copyWith({bool? isKonapay, String? tag, bool clearTag = false}) {
+  FilterState copyWith({bool? isKonapay, bool? isMobeom, String? category, bool clearCategory = false}) {
     return FilterState(
       isKonapay: isKonapay ?? this.isKonapay,
-      tag: clearTag ? null : (tag ?? this.tag),
+      isMobeom: isMobeom ?? this.isMobeom,
+      category: clearCategory ? null : (category ?? this.category),
     );
   }
 
   @override
   bool operator ==(Object other) =>
-      other is FilterState && other.isKonapay == isKonapay && other.tag == tag;
+      other is FilterState &&
+      other.isKonapay == isKonapay &&
+      other.isMobeom == isMobeom &&
+      other.category == category;
 
   @override
-  int get hashCode => Object.hash(isKonapay, tag);
+  int get hashCode => Object.hash(isKonapay, isMobeom, category);
 }
 
 final filterProvider = StateProvider<FilterState>((ref) => const FilterState());
@@ -67,11 +72,33 @@ final mockRestaurants = [
 // 새로 오픈한 가게 (reviewCount 적은 것 기준)
 final newRestaurants = mockRestaurants.where((r) => r.reviewCount < 40).toList();
 
+bool _matchesCategory(Restaurant r, String? category) {
+  if (category == null) return true;
+  const cafeCategories = ['카페', '커피숍', '디저트카페'];
+  const convenienceCategories = ['편의점'];
+  const martCategories = ['대형마트', '마트', '슈퍼마켓'];
+  switch (category) {
+    case '카페':
+      return cafeCategories.contains(r.category);
+    case '편의점':
+      return convenienceCategories.contains(r.category);
+    case '대형마트':
+      return martCategories.contains(r.category);
+    case '음식점': // 카페/편의점/마트 제외한 나머지 전부 = 음식점
+      return !cafeCategories.contains(r.category) &&
+          !convenienceCategories.contains(r.category) &&
+          !martCategories.contains(r.category);
+    default:
+      return true;
+  }
+}
+
 final restaurantProvider = Provider<List<Restaurant>>((ref) {
   final filter = ref.watch(filterProvider);
   return mockRestaurants.where((r) {
     if (filter.isKonapay && !r.isKonapay) return false;
-    if (filter.tag != null && !r.tags.contains(filter.tag)) return false;
+    if (filter.isMobeom && !r.isMobeom) return false;
+    if (!_matchesCategory(r, filter.category)) return false;
     return true;
   }).toList();
 });
@@ -83,7 +110,7 @@ final restaurantsFutureProvider = FutureProvider.family<List<Restaurant>, Filter
   try {
     final res = await ApiService().getRestaurants(
       isKonapay: filter.isKonapay ? true : null,
-      tag: filter.tag,
+      isMobeom: filter.isMobeom ? true : null,
       limit: 100,
     );
     final items = res.data['items'] as List<dynamic>? ?? [];
@@ -92,7 +119,7 @@ final restaurantsFutureProvider = FutureProvider.family<List<Restaurant>, Filter
     // 백엔드 미연결 시 mock 사용
     return mockRestaurants.where((r) {
       if (filter.isKonapay && !r.isKonapay) return false;
-      if (filter.tag != null && !r.tags.contains(filter.tag)) return false;
+      if (filter.isMobeom && !r.isMobeom) return false;
       return true;
     }).toList();
   }
