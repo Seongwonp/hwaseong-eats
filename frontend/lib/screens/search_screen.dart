@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
+import '../core/responsive.dart';
 import '../models/seasonal_event.dart';
 import '../models/restaurant.dart';
 import '../providers/restaurant_provider.dart';
@@ -79,7 +80,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _buildSuggestions(SeasonalEvent? todayEvent) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.symmetric(horizontal: context.hPad, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
+import '../core/responsive.dart';
 
 class RewardScreen extends StatelessWidget {
   const RewardScreen({super.key});
@@ -34,7 +35,7 @@ class RewardScreen extends StatelessWidget {
           children: [
             // 포인트 카드
             Container(
-              margin: const EdgeInsets.all(20),
+              margin: EdgeInsets.fromLTRB(context.hPad, 20, context.hPad, 20),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -84,7 +85,7 @@ class RewardScreen extends StatelessWidget {
 
             // 화성페이 전환 버튼
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: context.hPad),
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -104,7 +105,7 @@ class RewardScreen extends StatelessWidget {
 
             // 포인트 적립 방법
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: context.hPad),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -124,7 +125,7 @@ class RewardScreen extends StatelessWidget {
 
             // 내역
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: context.hPad),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
