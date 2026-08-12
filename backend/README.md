@@ -50,7 +50,7 @@ uv run uvicorn app.main:app --reload     # 서버 실행
 | `is_konapay` | `true` | 화성페이 가맹점만 |
 | `is_mobeom` | `true` | 모범음식점만 |
 | `category` | `일반음식점` | 업종 |
-| `tag` | `카공픽` | 태그 (아직 데이터 없음) |
+| `tag` | `카공픽` | 태그. `카공픽` `10대픽` `혼밥` `가성비` |
 | `q` | `본죽` | 상호명 검색 |
 | `food_only` | `true` (기본) | 음식 업종만 |
 | `lat`, `lng` | `37.2014`, `127.0985` | 현재 위치. 주면 거리순 정렬 |
@@ -165,6 +165,7 @@ uv run python -m app.services.mobeom         # 모범음식점 병합
 uv run python -m app.services.sangga         # 상가정보 좌표 (data/ 에 zip 필요)
 uv run python -m app.services.geocoding      # 카카오 지오코딩 (약 18분)
 uv run python -m app.services.geocode_refine # 겹친 좌표 재검증
+uv run python -m app.services.tagging        # 목적별 태그 (규칙 기반)
 ```
 
 전부 여러 번 돌려도 안전하다. 코나페이는 원본 키 기준 UPSERT, 모범음식점은 이미 있으면
@@ -178,8 +179,8 @@ uv run python -m app.services.geocode_refine # 겹친 좌표 재검증
 ## 테스트
 
 ```bash
-uv run pytest              # 전체 108개
-uv run pytest tests/test_matching.py   # DB 없이 도는 31개
+uv run pytest              # 전체 121개
+uv run pytest tests/test_matching.py tests/test_tagging.py   # DB 없이 도는 45개
 ```
 
 DB가 없으면 DB를 쓰는 테스트는 자동으로 건너뛴다.
@@ -227,8 +228,9 @@ Start   uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.
 **무료 PostgreSQL 이 2026-09-11 에 만료된다.** 본선(9/17)보다 먼저다.
 9월 초에 새 DB를 만들어 옮기거나 유료로 올려야 한다. 덤프가 2MB 남짓이라 몇 분이면 된다.
 
-**`restaurants.tags` 가 전부 비어 있다.** 프론트 지도의 `#카공픽 #10대픽 #혼밥 #가성비`
-필터칩을 누르면 빈 화면이 나온다. 공공데이터에 없는 정보라 따로 채워야 한다.
+**태그는 추정이지 검증된 사실이 아니다.** `#카공픽 #10대픽 #혼밥 #가성비` 는 공공데이터에
+없는 정보라, 상호명·업종에서 뽑아낸 규칙으로 2,220건에 붙여뒀다(`app/services/tagging.py`).
+원래는 식사평이 쌓이면서 채워져야 할 값이다. 그렇게 바뀌면 이 모듈은 버린다.
 
 **로컬과 운영 DB의 로케일이 다르다.** 로컬은 `C`, Render는 `en_US.UTF8` 이다.
 한글 정렬 순서와 `pg_trgm` 동작이 달라서, 검색 성능은 로컬에서 재면 안 된다.
