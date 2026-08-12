@@ -63,7 +63,7 @@ class TestAddPoints:
 
         with SessionLocal() as db:
             u = User(
-                login_id="__test_points__",
+                email="__test_points__@example.com",
                 password_hash="x",
                 nickname="__테스트__",
                 points=0,

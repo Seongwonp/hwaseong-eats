@@ -29,7 +29,7 @@ def account(client):
     """매번 새 계정을 만들고 끝나면 지운다."""
     tag = uuid.uuid4().hex[:8]
     body = {
-        "login_id": f"test_{tag}",
+        "email": f"test_{tag}@example.com",
         "password": "hwaseong1234",
         "nickname": f"테스트{tag[:4]}",
     }
@@ -41,7 +41,7 @@ def account(client):
 
     with SessionLocal() as db:
         db.execute(
-            text("DELETE FROM users WHERE login_id = :lid"), {"lid": body["login_id"]}
+            text("DELETE FROM users WHERE email = :em"), {"em": body["email"]}
         )
         db.commit()
 
@@ -54,7 +54,7 @@ class TestSignup:
     def test_비밀번호는_평문으로_저장되지_않는다(self, account):
         body, _, _ = account
         with SessionLocal() as db:
-            user = db.query(User).filter_by(login_id=body["login_id"]).one()
+            user = db.query(User).filter_by(email=body["email"]).one()
         assert user.password_hash != body["password"]
         assert user.password_hash.startswith("$2b$")
 
@@ -65,20 +65,20 @@ class TestSignup:
 
     def test_닉네임_중복도_409(self, client, account):
         body, _, _ = account
-        res = client.post("/auth/signup", json={**body, "login_id": "other_id_123"})
+        res = client.post("/auth/signup", json={**body, "email": "other_addr@example.com"})
         assert res.status_code == 409
 
     def test_짧은_비밀번호는_거부한다(self, client):
         res = client.post(
             "/auth/signup",
-            json={"login_id": "shortpw01", "password": "1234", "nickname": "짧은비번"},
+            json={"email": "shortpw@example.com", "password": "1234", "nickname": "짧은비번"},
         )
         assert res.status_code == 422
 
-    def test_아이디에_특수문자는_거부한다(self, client):
+    def test_이메일_형식이_아니면_거부한다(self, client):
         res = client.post(
             "/auth/signup",
-            json={"login_id": "bad id!", "password": "hwaseong1234", "nickname": "특수"},
+            json={"email": "not-an-email", "password": "hwaseong1234", "nickname": "형식"},
         )
         assert res.status_code == 422
 
@@ -88,7 +88,7 @@ class TestLogin:
         body, _, _ = account
         res = client.post(
             "/auth/login",
-            json={"login_id": body["login_id"], "password": body["password"]},
+            json={"email": body["email"], "password": body["password"]},
         )
         assert res.status_code == 200
         assert res.json()["access_token"]
@@ -96,18 +96,18 @@ class TestLogin:
     def test_비밀번호가_틀리면_401(self, client, account):
         body, _, _ = account
         res = client.post(
-            "/auth/login", json={"login_id": body["login_id"], "password": "wrongpw123"}
+            "/auth/login", json={"email": body["email"], "password": "wrongpw123"}
         )
         assert res.status_code == 401
 
-    def test_없는_아이디도_같은_401_메시지(self, client, account):
-        """어느 아이디가 존재하는지 알려주면 계정을 훑을 수 있다."""
+    def test_없는_계정도_같은_401_메시지(self, client, account):
+        """어느 이메일이 가입돼 있는지 알려주면 계정을 훑을 수 있다."""
         body, _, _ = account
         wrong_pw = client.post(
-            "/auth/login", json={"login_id": body["login_id"], "password": "wrongpw123"}
+            "/auth/login", json={"email": body["email"], "password": "wrongpw123"}
         )
         no_user = client.post(
-            "/auth/login", json={"login_id": "nobody_here_xyz", "password": "wrongpw123"}
+            "/auth/login", json={"email": "nobody_here@example.com", "password": "wrongpw123"}
         )
         assert wrong_pw.status_code == no_user.status_code == 401
         assert wrong_pw.json()["detail"] == no_user.json()["detail"]
@@ -119,7 +119,7 @@ class TestMe:
         res = client.get("/auth/me", headers=headers)
         assert res.status_code == 200
         data = res.json()
-        assert data["login_id"] == body["login_id"]
+        assert data["email"] == body["email"]
         assert data["points"] == 0
         assert data["is_resident_verified"] is False
 

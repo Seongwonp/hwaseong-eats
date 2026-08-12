@@ -1,16 +1,16 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class SignupRequest(BaseModel):
-    login_id: str = Field(min_length=4, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
+    email: EmailStr
     password: str = Field(min_length=8, max_length=72)
     nickname: str = Field(min_length=2, max_length=10)
 
 
 class LoginRequest(BaseModel):
-    login_id: str
+    email: EmailStr
     password: str
 
 
@@ -21,7 +21,7 @@ class TokenResponse(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
-    login_id: str
+    email: EmailStr
     nickname: str
     is_resident_verified: bool
     resident_expires_at: datetime | None

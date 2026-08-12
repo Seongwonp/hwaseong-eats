@@ -5,7 +5,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.ratelimit import limiter
-from app.routers import auth, restaurants
+from app.routers import auth, restaurants, reviews
 
 app = FastAPI(title="화성 먹거리 지도 API")
 
@@ -28,6 +28,7 @@ app.add_middleware(
 
 app.include_router(restaurants.router, prefix="/restaurants", tags=["restaurants"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 
 
 @app.get("/health")

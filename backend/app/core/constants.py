@@ -55,3 +55,8 @@ def in_hwaseong(lat: float, lng: float) -> bool:
         HWASEONG_LAT_RANGE[0] <= lat <= HWASEONG_LAT_RANGE[1]
         and HWASEONG_LNG_RANGE[0] <= lng <= HWASEONG_LNG_RANGE[1]
     )
+
+
+# 리워드 (기획서 p.10)
+REVIEW_POINTS = 500          # 화성인증 식사평 1건당
+POINTS_PER_CONVERT = 1000    # 화성페이 전환 최소 단위

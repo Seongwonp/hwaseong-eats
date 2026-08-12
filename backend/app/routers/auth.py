@@ -27,11 +27,11 @@ RESIDENT_VERIFY_VALID = timedelta(days=182)
 def signup(request: Request, body: SignupRequest, db: Session = Depends(get_db)):
     exists = db.scalar(
         select(User.id).where(
-            (User.login_id == body.login_id) | (User.nickname == body.nickname)
+            (User.email == body.email) | (User.nickname == body.nickname)
         )
     )
     if exists:
-        raise HTTPException(status.HTTP_409_CONFLICT, "이미 사용 중인 아이디 또는 닉네임입니다")
+        raise HTTPException(status.HTTP_409_CONFLICT, "이미 사용 중인 이메일 또는 닉네임입니다")
 
     try:
         password_hash = hash_password(body.password)
@@ -39,7 +39,7 @@ def signup(request: Request, body: SignupRequest, db: Session = Depends(get_db))
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
 
     user = User(
-        login_id=body.login_id, password_hash=password_hash, nickname=body.nickname
+        email=body.email, password_hash=password_hash, nickname=body.nickname
     )
     db.add(user)
     db.commit()
@@ -51,13 +51,13 @@ def signup(request: Request, body: SignupRequest, db: Session = Depends(get_db))
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit(LOGIN_LIMIT)
 def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
-    user = db.scalar(select(User).where(User.login_id == body.login_id))
+    user = db.scalar(select(User).where(User.email == body.email))
 
-    # 아이디가 없는 것과 비밀번호가 틀린 것을 구분해서 알려주지 않는다.
-    # 구분되면 어떤 아이디가 존재하는지 훑을 수 있다.
+    # 계정이 없는 것과 비밀번호가 틀린 것을 구분해서 알려주지 않는다.
+    # 구분되면 어떤 이메일이 가입돼 있는지 훑을 수 있다.
     if user is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다"
+            status.HTTP_401_UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다"
         )
 
     return TokenResponse(access_token=create_access_token(user.id))
