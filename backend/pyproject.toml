@@ -12,6 +12,8 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "anthropic>=0.40.0",
     "httpx>=0.27.0",
+    "bcrypt>=5.0.0",
+    "slowapi>=0.1.10",
 ]
 
 [build-system]
@@ -24,6 +26,7 @@ package = false
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pytest>=8.0.0",
 ]
 
