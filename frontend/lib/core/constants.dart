@@ -6,6 +6,7 @@ class ApiConstants {
   // 엔드포인트
   static const restaurants = '/restaurants';
   static const reviews = '/reviews';
+  static const festivals = '/festivals';
 
   // 인증
   static const signup = '/auth/signup';

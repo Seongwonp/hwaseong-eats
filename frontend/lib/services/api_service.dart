@@ -77,7 +77,6 @@ class ApiService {
     bool? isKonapay,
     bool? isMobeom,
     String? category,
-    String? tag,
     String? q,
     double? lat,
     double? lng,
@@ -89,7 +88,6 @@ class ApiService {
       if (isKonapay != null) 'is_konapay': isKonapay,
       if (isMobeom != null) 'is_mobeom': isMobeom,
       if (category != null) 'category': category,
-      if (tag != null) 'tag': tag,
       if (q != null) 'q': q,
       if (lat != null) 'lat': lat,
       if (lng != null) 'lng': lng,
@@ -101,6 +99,18 @@ class ApiService {
 
   Future<Response> getRestaurant(int id) {
     return _dio.get('${ApiConstants.restaurants}/$id');
+  }
+
+  // ── 절기·축제 ──────────────────────────────────────────────
+
+  Future<Response> getEvents({bool upcomingOnly = true}) {
+    return _dio.get(ApiConstants.festivals, queryParameters: {
+      if (upcomingOnly) 'upcoming_only': true,
+    });
+  }
+
+  Future<Response> getTodayEvents() {
+    return _dio.get('${ApiConstants.festivals}/today');
   }
 
   // ── 리뷰 ──────────────────────────────────────────────────
