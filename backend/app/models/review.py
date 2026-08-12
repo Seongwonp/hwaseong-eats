@@ -1,6 +1,16 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, SmallInteger, Text, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    SmallInteger,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -42,4 +52,8 @@ class Review(Base):
     __table_args__ = (
         Index("ix_reviews_restaurant_id", "restaurant_id"),
         Index("ix_reviews_user_id", "user_id"),
+        # 한 사람이 같은 가게에 여러 번 쓰면 리뷰당 500P 라 포인트를 무한히 만들 수 있다.
+        # 다만 재방문 후 다시 쓰는 것도 함께 막히므로, 방문 단위로 허용하기로 하면
+        # 이 제약을 풀고 영수증 단위 유니크로 바꿔야 한다.
+        UniqueConstraint("user_id", "restaurant_id", name="uq_reviews_user_restaurant"),
     )

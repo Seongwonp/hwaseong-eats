@@ -1,7 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+from app.core.ratelimit import limiter
+from app.routers import restaurants
 
 app = FastAPI(title="화성 먹거리 지도 API")
+
+# 인증 엔드포인트에 @limiter.limit 을 붙이려면 앱에 limiter 가 물려 있어야 한다.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Flutter 앱·웹에서 붙는다. 배포 시 도메인으로 좁힐 것.
 # 와일드카드와 allow_credentials=True 는 브라우저가 거부하는 조합이라 같이 못 쓴다.
@@ -13,6 +24,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(restaurants.router, prefix="/restaurants", tags=["restaurants"])
 
 
 @app.get("/health")
