@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
@@ -42,7 +43,15 @@ def signup(request: Request, body: SignupRequest, db: Session = Depends(get_db))
         email=body.email, password_hash=password_hash, nickname=body.nickname
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as e:
+        # 위 조회와 여기 사이에 같은 이메일로 다른 요청이 먼저 들어올 수 있다.
+        # 최종 판정은 DB 유니크 제약에 맡긴다.
+        db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "이미 사용 중인 이메일 또는 닉네임입니다"
+        ) from e
     db.refresh(user)
 
     return TokenResponse(access_token=create_access_token(user.id))

@@ -202,3 +202,37 @@ class TestDelete:
         ).json()
         rid = created["review"]["id"]
         assert client.delete(f"/reviews/{rid}", headers=plain_user).status_code == 404
+
+
+class TestRefund:
+    def test_적립_안_된_리뷰를_인증_후_지워도_터지지_않는다(
+        self, client, plain_user, restaurant_ids
+    ):
+        """삭제 시점에 조건을 다시 따지면, 적립한 적 없는 포인트를 깎으려 들어 500 이 났다."""
+        created = client.post(
+            "/reviews",
+            headers=plain_user,
+            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": True},
+        ).json()
+        assert created["earned_points"] == 0
+
+        # 작성 뒤에 주민인증을 마친다
+        assert client.post("/auth/verify", headers=plain_user).status_code == 200
+
+        res = client.delete(f"/reviews/{created['review']['id']}", headers=plain_user)
+        assert res.status_code == 204
+
+        me = client.get("/auth/me", headers=plain_user).json()
+        assert me["points"] == 0
+
+    def test_적립된_만큼만_회수한다(self, client, verified_user, restaurant_ids):
+        created = client.post(
+            "/reviews",
+            headers=verified_user,
+            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": True},
+        ).json()
+        assert created["earned_points"] == REVIEW_POINTS
+
+        client.delete(f"/reviews/{created['review']['id']}", headers=verified_user)
+        me = client.get("/auth/me", headers=verified_user).json()
+        assert me["points"] == 0

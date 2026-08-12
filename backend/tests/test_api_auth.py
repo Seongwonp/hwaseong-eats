@@ -150,3 +150,53 @@ class TestResidentVerify:
 
     def test_토큰_없이는_인증할_수_없다(self, client):
         assert client.post("/auth/verify").status_code == 401
+
+
+class TestEmailNormalization:
+    def test_대소문자만_다른_주소는_같은_계정으로_본다(self, client):
+        """정규화하지 않으면 Case@X.com 과 case@x.com 이 별개 계정이 된다."""
+        import uuid
+
+        tag = uuid.uuid4().hex[:8]
+        upper = f"Case_{tag}@Example.COM"
+        lower = f"case_{tag}@example.com"
+
+        first = client.post(
+            "/auth/signup",
+            json={"email": upper, "password": "hwaseong1234", "nickname": f"대{tag[:4]}"},
+        )
+        assert first.status_code == 201
+        second = client.post(
+            "/auth/signup",
+            json={"email": lower, "password": "hwaseong1234", "nickname": f"소{tag[:4]}"},
+        )
+        assert second.status_code == 409
+
+        with SessionLocal() as db:
+            db.execute(text("DELETE FROM users WHERE email = :e"), {"e": lower})
+            db.commit()
+
+    def test_대문자로_가입해도_소문자로_로그인된다(self, client):
+        import uuid
+
+        tag = uuid.uuid4().hex[:8]
+        client.post(
+            "/auth/signup",
+            json={
+                "email": f"Mixed_{tag}@Example.com",
+                "password": "hwaseong1234",
+                "nickname": f"혼합{tag[:4]}",
+            },
+        )
+        res = client.post(
+            "/auth/login",
+            json={"email": f"mixed_{tag}@example.com", "password": "hwaseong1234"},
+        )
+        assert res.status_code == 200
+
+        with SessionLocal() as db:
+            db.execute(
+                text("DELETE FROM users WHERE email = :e"),
+                {"e": f"mixed_{tag}@example.com"},
+            )
+            db.commit()

@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     SmallInteger,
     Text,
     UniqueConstraint,
@@ -42,6 +43,13 @@ class Review(Base):
 
     is_receipt_verified: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
+    )
+
+    # 작성 시점에 실제로 적립한 금액. 삭제할 때 이 값만큼만 회수한다.
+    # 삭제 시점에 조건을 다시 따지면, 작성 후 인증 상태가 바뀐 경우 적립한 적 없는
+    # 포인트를 깎으려 들어 터진다.
+    earned_points: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
     )
     receipt_image_url: Mapped[str | None] = mapped_column(Text)
 

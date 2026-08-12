@@ -77,6 +77,7 @@ def create_review(
         ) from e
 
     earned = REVIEW_POINTS if _is_certified(user, review) else 0
+    review.earned_points = earned
     if earned:
         add_points(db, user.id, earned, "화성인증 식사평")
 
@@ -103,8 +104,13 @@ def list_reviews(
     if restaurant_id is not None:
         filters.append(Review.restaurant_id == restaurant_id)
     if certified_only:
+        # _is_certified 와 같은 기준이어야 한다. 만료된 인증은 화성인증이 아니다.
+        now = datetime.now(timezone.utc)
         filters.append(Review.is_receipt_verified.is_(True))
         filters.append(User.is_resident_verified.is_(True))
+        filters.append(
+            (User.resident_expires_at.is_(None)) | (User.resident_expires_at >= now)
+        )
 
     base = select(Review, User).join(User, Review.user_id == User.id).where(*filters)
     total = db.scalar(
@@ -155,9 +161,10 @@ def delete_review(
         # 남의 리뷰인지 없는 리뷰인지 구분해서 알려주지 않는다.
         raise HTTPException(status.HTTP_404_NOT_FOUND, "식사평을 찾을 수 없습니다")
 
-    # 적립분은 회수한다. 지우고 다시 써서 포인트를 만드는 걸 막는다.
-    if _is_certified(user, review):
-        add_points(db, user.id, -REVIEW_POINTS, "식사평 삭제")
+    # 지우고 다시 써서 포인트를 만드는 걸 막으려고 적립분을 회수한다.
+    # 조건을 다시 따지지 않고 작성 시점에 기록해 둔 금액만 되돌린다.
+    if review.earned_points:
+        add_points(db, user.id, -review.earned_points, "식사평 삭제")
 
     db.delete(review)
     db.commit()
