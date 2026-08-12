@@ -4,12 +4,21 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import 'core/theme.dart';
 import 'core/router.dart';
+import 'providers/auth_provider.dart';
+import 'services/api_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   AuthRepository.initialize(appKey: dotenv.env['KAKAO_MAP_KEY']!);
-  runApp(const ProviderScope(child: HwaseongEatsApp()));
+
+  // 저장된 JWT 토큰 복원
+  await ApiService().initialize();
+
+  final container = ProviderContainer();
+  await container.read(authProvider.notifier).tryAutoLogin();
+
+  runApp(UncontrolledProviderScope(container: container, child: const HwaseongEatsApp()));
 }
 
 class HwaseongEatsApp extends StatelessWidget {

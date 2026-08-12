@@ -1,30 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
+import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 
-class ResidentVerifyScreen extends StatefulWidget {
+class ResidentVerifyScreen extends ConsumerStatefulWidget {
   const ResidentVerifyScreen({super.key});
 
   @override
-  State<ResidentVerifyScreen> createState() => _ResidentVerifyScreenState();
+  ConsumerState<ResidentVerifyScreen> createState() => _ResidentVerifyScreenState();
 }
 
-class _ResidentVerifyScreenState extends State<ResidentVerifyScreen> {
-  bool _verified = false;
+class _ResidentVerifyScreenState extends ConsumerState<ResidentVerifyScreen> {
   bool _loading = false;
 
-  void _startVerify() async {
+  Future<void> _startVerify() async {
     setState(() => _loading = true);
-    // TODO: 실제 주민등록 API 연결
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _loading = false;
-      _verified = true;
-    });
+    try {
+      await ApiService().verifyResident();
+      // 인증 완료 → /auth/me 재조회로 isVerified 갱신
+      await ref.read(authProvider.notifier).tryAutoLogin();
+    } catch (_) {
+      // 백엔드 미연결 시 조용히 무시
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = ref.watch(authProvider);
+    final verified = auth.isVerified;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -37,7 +45,6 @@ class _ResidentVerifyScreenState extends State<ResidentVerifyScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 배지 설명
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -45,11 +52,11 @@ class _ResidentVerifyScreenState extends State<ResidentVerifyScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Text('🏅', style: TextStyle(fontSize: 36)),
-                  const SizedBox(width: 16),
-                  const Expanded(
+                  Text('🏅', style: TextStyle(fontSize: 36)),
+                  SizedBox(width: 16),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -67,23 +74,12 @@ class _ResidentVerifyScreenState extends State<ResidentVerifyScreen> {
             const Text('인증 단계', style: TextStyle(fontFamily: 'NotoSerifKR', fontSize: 14, fontWeight: FontWeight.w700)),
             const SizedBox(height: 14),
 
-            _StepRow(
-              step: '1',
-              title: '화성주민 인증',
-              desc: '화성시 주민등록 기반 본인확인 (6개월 유효)',
-              done: _verified,
-            ),
+            _StepRow(step: '1', title: '화성주민 인증', desc: '화성시 주민등록 기반 본인확인 (6개월 유효)', done: verified),
             const SizedBox(height: 12),
-            _StepRow(
-              step: '2',
-              title: '영수증 인증',
-              desc: '식사평 작성 시 방문 영수증 첨부',
-              done: false,
-              pending: true,
-            ),
+            _StepRow(step: '2', title: '영수증 인증', desc: '식사평 작성 시 방문 영수증 첨부', done: false, pending: true),
             const SizedBox(height: 32),
 
-            if (!_verified) ...[
+            if (!verified) ...[
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -116,7 +112,7 @@ class _ResidentVerifyScreenState extends State<ResidentVerifyScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: () => context.go('/map'),
+                  onPressed: () => context.go('/home'),
                   child: const Text('지도 보러 가기', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 15)),
                 ),
               ),

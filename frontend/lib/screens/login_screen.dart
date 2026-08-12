@@ -4,41 +4,33 @@ import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
 
-class SignupScreen extends ConsumerStatefulWidget {
-  const SignupScreen({super.key});
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  ConsumerState<SignupScreen> createState() => _SignupScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _SignupScreenState extends ConsumerState<SignupScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
-  final _nicknameCtrl = TextEditingController();
   bool _obscure = true;
-  bool _agreed = false;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _pwCtrl.dispose();
-    _nicknameCtrl.dispose();
     super.dispose();
   }
 
-  bool get _canSubmit =>
-      _emailCtrl.text.contains('@') &&
-      _pwCtrl.text.length >= 6 &&
-      _nicknameCtrl.text.trim().length >= 2 &&
-      _agreed;
+  bool get _canSubmit => _emailCtrl.text.contains('@') && _pwCtrl.text.length >= 6;
 
-  Future<void> _signup() async {
-    final ok = await ref.read(authProvider.notifier).signup(
+  Future<void> _login() async {
+    final ok = await ref.read(authProvider.notifier).login(
       email: _emailCtrl.text.trim(),
       password: _pwCtrl.text,
-      nickname: _nicknameCtrl.text.trim(),
     );
-    if (ok && mounted) context.go('/verify');
+    if (ok && mounted) context.go('/home');
   }
 
   @override
@@ -49,17 +41,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
-        title: const Text('회원가입', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 16)),
+        title: const Text('로그인', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 16)),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('볏섬에 오신 걸 환영해요', style: TextStyle(fontFamily: 'NotoSerifKR', fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+            const Text('다시 오셨군요!', style: TextStyle(fontFamily: 'NotoSerifKR', fontSize: 22, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
-            Text('닉네임을 설정하고 화성 먹거리 지도를 만들어요', style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.5))),
+            Text('이메일로 로그인해 주세요', style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.5))),
             const SizedBox(height: 36),
 
             _label('이메일'),
@@ -78,35 +71,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
-            const SizedBox(height: 20),
-
-            _label('닉네임'),
-            const SizedBox(height: 8),
-            _field(controller: _nicknameCtrl, hint: '2~10자 입력', maxLength: 10),
-            const SizedBox(height: 24),
-
-            GestureDetector(
-              onTap: () => setState(() => _agreed = !_agreed),
-              child: Row(
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 22, height: 22,
-                    decoration: BoxDecoration(
-                      color: _agreed ? AppColors.primary : Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: _agreed ? AppColors.primary : Colors.grey.shade300),
-                    ),
-                    child: _agreed ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
-                  ),
-                  const SizedBox(width: 10),
-                  const Text('서비스 이용약관 및 개인정보처리방침에 동의합니다', style: TextStyle(fontSize: 13)),
-                ],
-              ),
-            ),
 
             if (auth.error != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(auth.error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
             ],
 
@@ -115,17 +82,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: (_canSubmit && !auth.isLoading) ? _signup : null,
+                onPressed: (_canSubmit && !auth.isLoading) ? _login : null,
                 child: auth.isLoading
                     ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('다음 — 화성주민 인증', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 15)),
+                    : const Text('로그인', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 15)),
               ),
             ),
             const SizedBox(height: 12),
             Center(
               child: TextButton(
-                onPressed: () => context.go('/home'),
-                child: Text('나중에 하기 (지도만 볼게요)', style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.4))),
+                onPressed: () => context.push('/signup'),
+                child: const Text('아직 계정이 없어요 → 회원가입', style: TextStyle(fontSize: 13, color: AppColors.primary)),
               ),
             ),
           ],
@@ -142,13 +109,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     bool obscure = false,
     TextInputType? keyboardType,
     Widget? suffix,
-    int? maxLength,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
-      maxLength: maxLength,
       onChanged: (_) => setState(() {}),
       decoration: InputDecoration(
         hintText: hint,

@@ -5,6 +5,7 @@ import '../screens/search_screen.dart';
 import '../screens/review_screen.dart';
 import '../screens/reward_screen.dart';
 import '../screens/signup_screen.dart';
+import '../screens/login_screen.dart';
 import '../screens/resident_verify_screen.dart';
 
 final router = GoRouter(
@@ -24,6 +25,7 @@ final router = GoRouter(
     ),
     GoRoute(path: '/reward', builder: (_, __) => const RewardScreen()),
     GoRoute(path: '/signup', builder: (_, __) => const SignupScreen()),
+    GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/verify', builder: (_, __) => const ResidentVerifyScreen()),
   ],
 );

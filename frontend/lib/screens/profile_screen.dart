@@ -1,24 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
+import '../providers/auth_provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  // 목 데이터
-  static const _nickname = '화성토박이';
-  static const _isVerified = true;
-  static const _points = 1500;
-  static const _reviewCount = 3;
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+
+    // 비로그인 상태
+    if (!auth.isLoggedIn) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('🍽️', style: TextStyle(fontSize: 48)),
+              const SizedBox(height: 16),
+              const Text('로그인 후 이용할 수 있어요', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 16)),
+              const SizedBox(height: 8),
+              Text('식사평 등록, 리워드 적립이 가능해요', style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.5))),
+              const SizedBox(height: 32),
+              FilledButton(
+                onPressed: () => context.push('/login'),
+                child: const Text('로그인하기', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => context.push('/signup'),
+                child: const Text('회원가입', style: TextStyle(color: AppColors.primary)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final nickname = auth.nickname ?? '화성 주민';
+    final points = auth.points;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         title: const Text('마이페이지', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 16)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -30,7 +60,6 @@ class ProfileScreen extends StatelessWidget {
               color: Colors.white,
               child: Column(
                 children: [
-                  // 아바타
                   Container(
                     width: 72, height: 72,
                     decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
@@ -41,8 +70,8 @@ class ProfileScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(_nickname, style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 18)),
-                      if (_isVerified) ...[
+                      Text(nickname, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 18)),
+                      if (auth.isVerified) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -64,7 +93,6 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // 포인트 코인 — PDF 10p: "프로필 바로 아래 코인으로 적립액 확인"
                   GestureDetector(
                     onTap: () => context.push('/reward'),
                     child: Container(
@@ -82,7 +110,7 @@ class ProfileScreen extends StatelessWidget {
                         children: [
                           const Text('🪙', style: TextStyle(fontSize: 20)),
                           const SizedBox(width: 10),
-                          const Text('$_points P', style: TextStyle(fontFamily: 'NotoSerifKR', fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
+                          Text('$points P', style: const TextStyle(fontFamily: 'NotoSerifKR', fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
                           const SizedBox(width: 8),
                           const Icon(Icons.chevron_right, color: Colors.white70, size: 18),
                         ],
@@ -95,31 +123,28 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // 활동 요약
             Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
               child: Row(
                 children: [
-                  _StatBox(label: '식사평', value: '$_reviewCount'),
+                  _StatBox(label: '화성인증', value: auth.isVerified ? '✅' : '미완료'),
                   _Divider(),
-                  _StatBox(label: '적립 포인트', value: '$_points P'),
-                  _Divider(),
-                  _StatBox(label: '화성인증', value: _isVerified ? '✅' : '미완료'),
+                  _StatBox(label: '적립 포인트', value: '$points P'),
                 ],
               ),
             ),
 
             const SizedBox(height: 12),
 
-            // 메뉴 리스트
             Container(
               color: Colors.white,
               child: Column(
                 children: [
                   _MenuItem(icon: Icons.rate_review_outlined, label: '내 식사평', onTap: () {}),
                   _MenuItem(icon: Icons.card_giftcard_outlined, label: '리워드 내역', onTap: () => context.push('/reward')),
-                  _MenuItem(icon: Icons.verified_user_outlined, label: '화성주민 인증', onTap: () => context.push('/verify')),
+                  if (!auth.isVerified)
+                    _MenuItem(icon: Icons.verified_user_outlined, label: '화성주민 인증', onTap: () => context.push('/verify')),
                 ],
               ),
             ),
@@ -128,11 +153,13 @@ class ProfileScreen extends StatelessWidget {
 
             Container(
               color: Colors.white,
-              child: Column(
-                children: [
-                  _MenuItem(icon: Icons.info_outline, label: '서비스 정보', onTap: () {}),
-                  _MenuItem(icon: Icons.logout, label: '로그아웃', onTap: () => context.go('/map'), color: Colors.red.shade300),
-                ],
+              child: _MenuItem(
+                icon: Icons.logout,
+                label: '로그아웃',
+                color: Colors.red.shade300,
+                onTap: () async {
+                  await ref.read(authProvider.notifier).logout();
+                },
               ),
             ),
 

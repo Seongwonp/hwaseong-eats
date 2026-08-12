@@ -6,20 +6,22 @@ class ApiConstants {
   // 엔드포인트
   static const restaurants = '/restaurants';
   static const reviews = '/reviews';
-  static const rewards = '/rewards';
-  static const festivals = '/festivals';
-  static const festivalsToday = '/festivals/today';
-  static const auth = '/auth';
+
+  // 인증
+  static const signup = '/auth/signup';
+  static const login = '/auth/login';
+  static const me = '/auth/me';
+  static const verifyResident = '/auth/verify';
+  static const myPoints = '/auth/me/points';
 }
 
 class AppConstants {
   // 리워드
   static const reviewPoints = 500;
-  static const pointsPerKrw = 1000; // 1000P = 화성페이 전환 기준
+  static const minExchangePoints = 1000;
 
   // 지도
-  static const festivalRadiusKm = 3.0;
-  static const defaultZoomLevel = 14;
+  static const defaultZoomLevel = 8;
 
   // 화성시 중심 좌표
   static const hwaseongLat = 37.1996;

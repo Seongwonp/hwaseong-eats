@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/restaurant.dart';
+import '../services/api_service.dart';
 
 class FilterState {
   final bool isKonapay;
@@ -13,6 +14,13 @@ class FilterState {
       tag: clearTag ? null : (tag ?? this.tag),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is FilterState && other.isKonapay == isKonapay && other.tag == tag;
+
+  @override
+  int get hashCode => Object.hash(isKonapay, tag);
 }
 
 final filterProvider = StateProvider<FilterState>((ref) => const FilterState());
@@ -69,3 +77,23 @@ final restaurantProvider = Provider<List<Restaurant>>((ref) {
 });
 
 final selectedRestaurantProvider = StateProvider<Restaurant?>((ref) => null);
+
+// 실제 API에서 음식점 목록 조회 (실패 시 mock으로 폴백)
+final restaurantsFutureProvider = FutureProvider.family<List<Restaurant>, FilterState>((ref, filter) async {
+  try {
+    final res = await ApiService().getRestaurants(
+      isKonapay: filter.isKonapay ? true : null,
+      tag: filter.tag,
+      limit: 100,
+    );
+    final items = res.data['items'] as List<dynamic>? ?? [];
+    return items.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
+  } catch (_) {
+    // 백엔드 미연결 시 mock 사용
+    return mockRestaurants.where((r) {
+      if (filter.isKonapay && !r.isKonapay) return false;
+      if (filter.tag != null && !r.tags.contains(filter.tag)) return false;
+      return true;
+    }).toList();
+  }
+});
