@@ -10,7 +10,10 @@ import 'services/api_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  AuthRepository.initialize(appKey: dotenv.env['KAKAO_MAP_KEY']!);
+  AuthRepository.initialize(
+    appKey: dotenv.env['KAKAO_MAP_KEY']!,
+    baseUrl: 'http://localhost',
+  );
 
   // 저장된 JWT 토큰 복원
   await ApiService().initialize();

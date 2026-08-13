@@ -863,7 +863,6 @@ class _ThickDivider extends StatelessWidget {
     return Container(
       height: 8,
       color: const Color(0xFFF6F6F6),
-      margin: const EdgeInsets.symmetric(horizontal: -20),
     );
   }
 }

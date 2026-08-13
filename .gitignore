@@ -24,6 +24,9 @@ frontend/.packages
 # OS
 .DS_Store
 
+# Local development services
+.local/
+
 # 키 파일 (커밋 금지)
 restapi_key.txt
 

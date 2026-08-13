@@ -157,7 +157,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ),
 
         // 다가오는 먹거리 일정
-        const SliverToBoxAdapter(
+        SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(context.hPad, 24, context.hPad, 12),
             child: Text('다가오는 먹거리 일정', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary)),
@@ -165,7 +165,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ),
 
         if (upcoming.isEmpty)
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: context.hPad, vertical: 16),
               child: Text('다가오는 일정이 없어요', style: TextStyle(fontSize: 13, color: Colors.grey)),
