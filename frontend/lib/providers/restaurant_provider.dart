@@ -156,17 +156,17 @@ final selectedRestaurantProvider = StateProvider<Restaurant?>((ref) => null);
 // 지도 bounds 타입 (named record)
 typedef MapBounds = ({double lat, double lng, double radiusKm});
 
-// 지도 bounds 상태 - 화성시 중심/25km 기본값으로 초기화
-// (초기 로드 시 bounds 없이 전체 조회하는 API 이중 호출 방지)
+// 지도 bounds 상태 - 화성시청 좌표 + 반경 2km 기본값
+// MapScreen.initState에서 GPS 위치로 덮어쓰고, 사용자가 명시적으로 검색할 때만 업데이트
 final mapBoundsProvider = StateProvider<MapBounds?>((ref) => (
   lat: 37.1996,
   lng: 126.8312,
-  radiusKm: 25.0,
+  radiusKm: 2.0,
 ));
 
 // filterProvider + mapBoundsProvider 양쪽을 watch하는 통합 지도용 provider.
 // Riverpod이 의존성 변경 시 이전 Future를 자동 폐기하므로 race condition 없음.
-const _kMapQueryLimit = 100;
+const _kMapQueryLimit = 30;
 
 final mapRestaurantsProvider =
     FutureProvider<({List<Restaurant> restaurants, int total})>((ref) async {

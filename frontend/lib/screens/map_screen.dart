@@ -1,7 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import '../core/theme.dart';
@@ -13,6 +12,19 @@ import '../providers/favorite_provider.dart';
 import '../widgets/seasonal_banner.dart';
 import '../widgets/restaurant_bottom_sheet.dart';
 
+// 화성시청 좌표 (GPS 획득 실패 시 기본값)
+const _kDefaultLat = 37.1996;
+const _kDefaultLng = 126.8312;
+const _kSearchRadiusKm = 2.0;
+const _kMaxDisplayCount = 30;
+
+// 줌 레벨이 이 값 초과이면 너무 넓은 영역 → 검색 버튼 대신 안내 표시
+// Kakao 맵 level 1=최근접, 14=최원경
+const _kTooFarZoomLevel = 10;
+
+// 마지막 검색 위치에서 이 거리(도 단위) 이상 이동하면 "이 지역에서 검색" 표시
+const _kMovedThreshold = 0.005; // ≈ 500m
+
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
@@ -23,11 +35,17 @@ class MapScreen extends ConsumerStatefulWidget {
 class _MapScreenState extends ConsumerState<MapScreen> {
   KakaoMapController? _mapController;
 
-  // onCameraIdle이 연속 발화할 때 최신 요청만 반영하기 위한 카운터
-  int _boundsRequestId = 0;
+  // 카메라가 현재 가리키는 중심 (onCameraIdle에서 업데이트, 아직 검색하지 않은 위치)
+  LatLng _pendingCenter = LatLng(_kDefaultLat, _kDefaultLng);
 
-  static const _kMaxRadiusKm = 30.0;
-  static const _kMapQueryLimit = 100; // restaurant_provider.dart의 값과 동기화
+  // 현재 줌 레벨
+  int _zoomLevel = 8;
+
+  // 카메라가 마지막 검색 위치에서 이동했는지 (버튼 표시 여부)
+  bool _showSearchHere = false;
+
+  // "내 위치" 버튼 로딩 표시
+  bool _isLocating = false;
 
   static const _categoryItems = [
     ('음식점', Icons.restaurant),
@@ -36,36 +54,98 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ('대형마트', Icons.shopping_cart),
   ];
 
-  // SW-NE 두 꼭짓점 사이의 haversine 거리(km)
-  static double _haversineKm(LatLng a, LatLng b) {
-    const r = 6371.0;
-    final lat1 = a.latitude * math.pi / 180;
-    final lat2 = b.latitude * math.pi / 180;
-    final dLat = (b.latitude - a.latitude) * math.pi / 180;
-    final dLng = (b.longitude - a.longitude) * math.pi / 180;
-    final x = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(lat1) * math.cos(lat2) * math.sin(dLng / 2) * math.sin(dLng / 2);
-    return r * 2 * math.atan2(math.sqrt(x), math.sqrt(1 - x));
+  @override
+  void initState() {
+    super.initState();
+    // 위젯 트리 빌드 후 GPS 조회 → mapBoundsProvider 업데이트
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initLocation());
   }
 
-  // 카메라 이동 완료 콜백.
-  // getBounds()가 async이므로 _boundsRequestId로 stale 응답을 버림.
-  Future<void> _onCameraIdle(LatLng center, int zoomLevel) async {
-    final requestId = ++_boundsRequestId;
-    final controller = _mapController;
-    if (controller == null) return;
+  // 앱 최초 진입 시 위치 획득
+  Future<void> _initLocation() async {
+    final pos = await _fetchPosition();
+    final lat = pos?.latitude ?? _kDefaultLat;
+    final lng = pos?.longitude ?? _kDefaultLng;
 
-    final bounds = await controller.getBounds();
-    if (requestId != _boundsRequestId) return; // 더 최신 요청이 있으면 무시
+    _pendingCenter = LatLng(lat, lng);
+    _commitSearch(lat, lng);
 
-    final diagonal = _haversineKm(bounds.sw, bounds.ne);
-    final radiusKm = math.min(diagonal / 2, _kMaxRadiusKm);
+    // 맵 컨트롤러가 준비됐으면 카메라 이동
+    _mapController?.setCenter(LatLng(lat, lng));
+  }
 
+  // Geolocator를 통한 위치 획득. 권한 거부·서비스 꺼짐·타임아웃 모두 null 반환.
+  Future<Position?> _fetchPosition() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return null;
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return null;
+      }
+      if (permission == LocationPermission.deniedForever) return null;
+
+      return await Geolocator.getCurrentPosition().timeout(
+        const Duration(seconds: 5),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // mapBoundsProvider 업데이트 → mapRestaurantsProvider 자동 재실행
+  void _commitSearch(double lat, double lng) {
     ref.read(mapBoundsProvider.notifier).state = (
-      lat: center.latitude,
-      lng: center.longitude,
-      radiusKm: radiusKm,
+      lat: lat,
+      lng: lng,
+      radiusKm: _kSearchRadiusKm,
     );
+    setState(() => _showSearchHere = false);
+  }
+
+  // onCameraIdle 콜백: 카메라 상태만 기록, API 호출 안 함
+  void _onCameraIdle(LatLng center, int zoomLevel) {
+    final searched = ref.read(mapBoundsProvider);
+    final lastLat = searched?.lat ?? _kDefaultLat;
+    final lastLng = searched?.lng ?? _kDefaultLng;
+
+    final moved = (center.latitude - lastLat).abs() > _kMovedThreshold ||
+        (center.longitude - lastLng).abs() > _kMovedThreshold;
+
+    setState(() {
+      _pendingCenter = center;
+      _zoomLevel = zoomLevel;
+      // 너무 멀리 줌 아웃된 상태에선 이동해도 검색 버튼을 숨김
+      _showSearchHere = moved && zoomLevel <= _kTooFarZoomLevel;
+    });
+  }
+
+  // "이 지역에서 검색" 버튼
+  void _onSearchHere() {
+    _commitSearch(_pendingCenter.latitude, _pendingCenter.longitude);
+  }
+
+  // "내 위치" 버튼
+  Future<void> _onMyLocation() async {
+    setState(() => _isLocating = true);
+    final pos = await _fetchPosition();
+    setState(() => _isLocating = false);
+
+    if (!mounted) return;
+
+    if (pos == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('위치를 가져올 수 없어요')),
+      );
+      return;
+    }
+
+    final center = LatLng(pos.latitude, pos.longitude);
+    _mapController?.setCenter(center);
+    _pendingCenter = center;
+    _commitSearch(pos.latitude, pos.longitude);
   }
 
   List<Marker> _buildMarkers(List<Restaurant> restaurants) {
@@ -99,44 +179,51 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final restaurants = mapAsync.valueOrNull?.restaurants ?? [];
     final total = mapAsync.valueOrNull?.total ?? 0;
     final todayEvent = ref.watch(todayEventProvider).valueOrNull;
-    final isOverLimit = total > _kMapQueryLimit;
+
+    final isTooFarOut = _zoomLevel > _kTooFarZoomLevel;
+    final isOverLimit = total > _kMaxDisplayCount;
+
+    // 하단 패널이 차지하는 높이 (38% 기본)
+    final panelOffset = MediaQuery.of(context).size.height * 0.38 + 12;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // 카카오맵 풀스크린
+          // ── 카카오맵 풀스크린 ──────────────────────────
           KakaoMap(
             onMapCreated: (c) => _mapController = c,
             onMarkerTap: _onMarkerTap,
             onCameraIdle: _onCameraIdle,
-            center: LatLng(37.1996, 126.8312),
+            center: LatLng(_kDefaultLat, _kDefaultLng),
             currentLevel: 8,
             markers: _buildMarkers(restaurants),
           ),
 
-          // 하단 드래그 패널
+          // ── 하단 드래그 패널 ────────────────────────────
           DraggableScrollableSheet(
             initialChildSize: 0.38,
             minChildSize: 0.12,
             maxChildSize: 0.88,
             snap: true,
             snapSizes: const [0.38],
-            builder: (context, scrollController) {
+            builder: (ctx, scrollController) {
               return Container(
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(20)),
                   boxShadow: [
                     BoxShadow(
-                        color: Color(0x1A000000),
-                        blurRadius: 16,
-                        offset: Offset(0, -4))
+                      color: Color(0x1A000000),
+                      blurRadius: 16,
+                      offset: Offset(0, -4),
+                    )
                   ],
                 ),
                 child: Column(
                   children: [
-                    // 핸들
+                    // 핸들 바
                     Padding(
                       padding: const EdgeInsets.only(top: 12, bottom: 6),
                       child: Container(
@@ -149,78 +236,54 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       ),
                     ),
 
-                    // 헤더: 지역명 + 화성페이 토글 버튼
+                    // 헤더: 지역명 + 결과 건수 + 화성페이 토글
                     Padding(
                       padding: EdgeInsets.fromLTRB(
                           context.hPad, 6, context.hPad, 10),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            '화성시',
-                            style: TextStyle(
-                              fontFamily: 'NotoSerifKR',
-                              fontSize: context.fs(18),
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () =>
-                                ref.read(filterProvider.notifier).update(
-                                      (s) =>
-                                          s.copyWith(isKonapay: !s.isKonapay),
-                                    ),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: filter.isKonapay
-                                    ? AppColors.primary
-                                    : Colors.white,
-                                border: Border.all(
-                                    color: AppColors.primary, width: 1.5),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                '화성페이',
+                          Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '화성시',
                                 style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: filter.isKonapay
-                                      ? Colors.white
-                                      : AppColors.primary,
+                                  fontFamily: 'NotoSerifKR',
+                                  fontSize: context.fs(18),
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
-                            ),
+                              if (!mapAsync.isLoading &&
+                                  !mapAsync.hasError) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  isOverLimit
+                                      ? '가까운 음식점 ${_kMaxDisplayCount}개를 표시하고 있어요'
+                                      : restaurants.isEmpty
+                                          ? '주변 음식점을 찾을 수 없어요'
+                                          : '${restaurants.length}개 음식점',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF999999),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          _KonapayToggle(
+                            active: filter.isKonapay,
+                            onTap: () => ref
+                                .read(filterProvider.notifier)
+                                .update((s) =>
+                                    s.copyWith(isKonapay: !s.isKonapay)),
                           ),
                         ],
                       ),
                     ),
-
-                    // 결과 100건 초과 안내
-                    if (isOverLimit)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        color: const Color(0xFFFFF8EC),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.zoom_in,
-                                size: 16, color: Color(0xFFCC8800)),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                '이 지역에 음식점이 $total개 있어요. 지도를 확대하면 더 정확하게 볼 수 있어요.',
-                                style: const TextStyle(
-                                    fontSize: 12, color: Color(0xFFCC8800)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
 
                     const Divider(height: 1, color: Color(0xFFF0F0F0)),
 
@@ -231,22 +294,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                               child: CircularProgressIndicator(
                                   color: AppColors.primary))
                           : mapAsync.hasError
-                              ? _RestaurantLoadError(
-                                  onRetry: () =>
-                                      ref.invalidate(mapRestaurantsProvider),
+                              ? _ErrorView(
+                                  onRetry: () => ref
+                                      .invalidate(mapRestaurantsProvider),
                                 )
                               : restaurants.isEmpty
-                                  ? const _EmptyListPlaceholder()
+                                  ? const _EmptyView()
                                   : ListView.separated(
                                       controller: scrollController,
-                                      padding:
-                                          const EdgeInsets.only(bottom: 32),
+                                      padding: const EdgeInsets.only(
+                                          bottom: 32),
                                       itemCount: restaurants.length,
                                       separatorBuilder: (_, __) =>
                                           const Divider(
                                               height: 1,
                                               color: Color(0xFFF0F0F0)),
-                                      itemBuilder: (ctx, i) =>
+                                      itemBuilder: (_, i) =>
                                           _MapRestaurantCard(
                                               restaurant: restaurants[i]),
                                     ),
@@ -257,19 +320,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             },
           ),
 
-          // 볏섬 로고 (맵 위 좌하단, 패널 바로 위)
+          // ── 볏섬 로고 (지도 위 좌하단) ─────────────────
           Positioned(
-            bottom: MediaQuery.of(context).size.height * 0.38 + 12,
+            bottom: panelOffset,
             left: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 6)
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                  )
                 ],
               ),
               child: const Text(
@@ -284,17 +349,45 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          // 상단 오버레이: 절기배너 + 검색바 + 카테고리 칩
+          // ── 내 위치 버튼 (지도 위 우하단) ──────────────
+          Positioned(
+            bottom: panelOffset,
+            right: 16,
+            child: Material(
+              color: Colors.white,
+              shape: const CircleBorder(),
+              elevation: 3,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: _isLocating ? null : _onMyLocation,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: _isLocating
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary),
+                        )
+                      : const Icon(Icons.my_location,
+                          color: AppColors.primary, size: 22),
+                ),
+              ),
+            ),
+          ),
+
+          // ── 상단 오버레이: 절기배너 + 검색바 + 카테고리 칩 + 검색 버튼
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (todayEvent != null) SeasonalBanner(event: todayEvent),
 
-                // 검색바
+                // 검색바 (탭 시 검색 화면으로 이동)
                 Padding(
-                  padding:
-                      EdgeInsets.fromLTRB(context.hPad, 10, context.hPad, 0),
+                  padding: EdgeInsets.fromLTRB(
+                      context.hPad, 10, context.hPad, 0),
                   child: GestureDetector(
                     onTap: () => context.push('/search'),
                     child: Container(
@@ -352,21 +445,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: GestureDetector(
-                          onTap: () => ref.read(filterProvider.notifier).update(
-                                (s) => selected
-                                    ? s.copyWith(clearCategory: true)
-                                    : s.copyWith(category: label),
-                              ),
+                          onTap: () =>
+                              ref.read(filterProvider.notifier).update(
+                                    (s) => selected
+                                        ? s.copyWith(clearCategory: true)
+                                        : s.copyWith(category: label),
+                                  ),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 180),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14),
                             decoration: BoxDecoration(
-                              color:
-                                  selected ? AppColors.primary : Colors.white,
+                              color: selected
+                                  ? AppColors.primary
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
+                                  color:
+                                      Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -375,13 +472,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  icon,
-                                  size: 15,
-                                  color: selected
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                ),
+                                Icon(icon,
+                                    size: 15,
+                                    color: selected
+                                        ? Colors.white
+                                        : AppColors.textPrimary),
                                 const SizedBox(width: 5),
                                 Text(
                                   label,
@@ -401,6 +496,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     },
                   ),
                 ),
+
+                const SizedBox(height: 8),
+
+                // "이 지역에서 검색" / "지도를 확대해 주세요" 버튼
+                Center(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: isTooFarOut
+                        ? _MapHintChip(
+                            key: const ValueKey('zoom'),
+                            icon: Icons.zoom_in,
+                            label: '지도를 확대해 주세요',
+                            onTap: null,
+                          )
+                        : _showSearchHere
+                            ? _MapHintChip(
+                                key: const ValueKey('search'),
+                                icon: Icons.search,
+                                label: '이 지역에서 검색',
+                                isPrimary: true,
+                                onTap: _onSearchHere,
+                              )
+                            : const SizedBox.shrink(
+                                key: ValueKey('none')),
+                  ),
+                ),
               ],
             ),
           ),
@@ -410,25 +531,114 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 }
 
-// 맵 하단 패널용 음식점 카드
+// ── 화성페이 토글 버튼 ────────────────────────────────────────────────────
+
+class _KonapayToggle extends StatelessWidget {
+  final bool active;
+  final VoidCallback onTap;
+  const _KonapayToggle({required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : Colors.white,
+          border: Border.all(color: AppColors.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          '화성페이',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: active ? Colors.white : AppColors.primary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── 지도 상단 안내/검색 칩 ────────────────────────────────────────────────
+
+class _MapHintChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isPrimary;
+  final VoidCallback? onTap;
+
+  const _MapHintChip({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.isPrimary = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = isPrimary ? AppColors.primary : Colors.white;
+    final fgColor = isPrimary ? Colors.white : const Color(0xFF555555);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: fgColor),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: fgColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 음식점 카드 ──────────────────────────────────────────────────────────
+
 class _MapRestaurantCard extends ConsumerWidget {
   final Restaurant restaurant;
   const _MapRestaurantCard({required this.restaurant});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final favorites = ref.watch(favoriteProvider);
-    final isFav = favorites.contains(restaurant.id);
+    final isFav = ref.watch(favoriteProvider).contains(restaurant.id);
 
     return InkWell(
-      onTap: () =>
-          context.push('/restaurant/${restaurant.id}', extra: restaurant),
+      onTap: () => context.push(
+          '/restaurant/${restaurant.id}', extra: restaurant),
       child: Padding(
         padding: EdgeInsets.fromLTRB(context.hPad, 14, context.hPad, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 이름 + 화성페이 배지 + 하트
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -450,12 +660,12 @@ class _MapRestaurantCard extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            border:
-                                Border.all(color: AppColors.primary, width: 1),
+                            border: Border.all(
+                                color: AppColors.primary, width: 1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
-                            '화성 페이 가능',
+                            '화성페이',
                             style: TextStyle(
                               fontSize: 10,
                               color: AppColors.primary,
@@ -469,32 +679,32 @@ class _MapRestaurantCard extends ConsumerWidget {
                 const SizedBox(width: 8),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () =>
-                      ref.read(favoriteProvider.notifier).toggle(restaurant.id),
+                  onTap: () => ref
+                      .read(favoriteProvider.notifier)
+                      .toggle(restaurant.id),
                   child: Padding(
                     padding: const EdgeInsets.only(top: 1),
                     child: Icon(
                       isFav ? Icons.favorite : Icons.favorite_border,
-                      color:
-                          isFav ? AppColors.primary : const Color(0xFFCCCCCC),
+                      color: isFav
+                          ? AppColors.primary
+                          : const Color(0xFFCCCCCC),
                       size: 22,
                     ),
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 4),
-
-            // 주소
             Text(
               restaurant.address,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
+              style: const TextStyle(
+                  fontSize: 12, color: Color(0xFF999999)),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-
-            if (restaurant.distanceKm != null || restaurant.rating != null) ...[
+            if (restaurant.distanceKm != null ||
+                restaurant.rating != null) ...[
               const SizedBox(height: 5),
               Row(
                 children: [
@@ -531,8 +741,10 @@ class _MapRestaurantCard extends ConsumerWidget {
   }
 }
 
-class _EmptyListPlaceholder extends StatelessWidget {
-  const _EmptyListPlaceholder();
+// ── 빈 결과 / 에러 뷰 ───────────────────────────────────────────────────
+
+class _EmptyView extends StatelessWidget {
+  const _EmptyView();
 
   @override
   Widget build(BuildContext context) {
@@ -544,16 +756,18 @@ class _EmptyListPlaceholder extends StatelessWidget {
           SizedBox(height: 8),
           Text('주변 음식점이 없어요',
               style: TextStyle(fontSize: 14, color: Color(0xFFAAAAAA))),
+          SizedBox(height: 4),
+          Text('지도를 이동해 다른 지역을 검색해보세요',
+              style: TextStyle(fontSize: 12, color: Color(0xFFCCCCCC))),
         ],
       ),
     );
   }
 }
 
-class _RestaurantLoadError extends StatelessWidget {
+class _ErrorView extends StatelessWidget {
   final VoidCallback onRetry;
-
-  const _RestaurantLoadError({required this.onRetry});
+  const _ErrorView({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
