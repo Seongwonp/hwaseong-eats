@@ -100,10 +100,16 @@ class _RestaurantDetailScreenState extends ConsumerState<RestaurantDetailScreen>
                     const SizedBox(height: 5),
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded, size: 15, color: Color(0xFFFFBB33)),
+                        Icon(
+                          restaurant.rating == null ? Icons.star_border_rounded : Icons.star_rounded,
+                          size: 15,
+                          color: restaurant.rating == null ? const Color(0xFFBBBBBB) : const Color(0xFFFFBB33),
+                        ),
                         const SizedBox(width: 3),
                         Text(
-                          '평점 ${restaurant.rating} · 리뷰 ${restaurant.reviewCount}',
+                          restaurant.rating == null
+                              ? '아직 등록된 평점이 없어요'
+                              : '평점 ${restaurant.rating!.toStringAsFixed(1)} · 리뷰 ${restaurant.reviewCount}',
                           style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
                         ),
                       ],
