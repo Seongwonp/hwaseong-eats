@@ -48,7 +48,7 @@ class SeasonalEvent {
         eventType: json['event_type'],
         startDate: DateTime.parse(json['start_date']),
         endDate: DateTime.parse(json['end_date']),
-        foodKeyword: json['food_keyword'],
+        foodKeyword: json['food_keyword'] as String? ?? '',
         location: json['location'],
         lat: json['lat'] != null ? (json['lat'] as num).toDouble() : null,
         lng: json['lng'] != null ? (json['lng'] as num).toDouble() : null,

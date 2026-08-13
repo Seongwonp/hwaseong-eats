@@ -11,6 +11,8 @@ class Restaurant {
   final List<String> tags;
   final double? rating;
   final int reviewCount;
+  final String geocodeStatus;
+  final double? distanceKm;
 
   const Restaurant({
     required this.id,
@@ -25,6 +27,8 @@ class Restaurant {
     required this.tags,
     this.rating,
     this.reviewCount = 0,
+    this.geocodeStatus = 'verified',
+    this.distanceKm,
   });
 
   factory Restaurant.fromJson(Map<String, dynamic> json) => Restaurant(
@@ -40,5 +44,7 @@ class Restaurant {
         tags: List<String>.from(json['tags'] ?? []),
         rating: json['avg_rating'] != null ? (json['avg_rating'] as num).toDouble() : null,
         reviewCount: json['review_count'] ?? 0,
+        geocodeStatus: json['geocode_status'] as String? ?? 'verified',
+        distanceKm: json['distance_km'] != null ? (json['distance_km'] as num).toDouble() : null,
       );
 }

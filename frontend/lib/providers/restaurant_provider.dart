@@ -114,12 +114,17 @@ final restaurantsFutureProvider = FutureProvider.family<List<Restaurant>, Filter
       limit: 100,
     );
     final items = res.data['items'] as List<dynamic>? ?? [];
-    return items.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
+    final restaurants = items.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
+    if (filter.category != null) {
+      return restaurants.where((r) => _matchesCategory(r, filter.category)).toList();
+    }
+    return restaurants;
   } catch (_) {
     // 백엔드 미연결 시 mock 사용
     return mockRestaurants.where((r) {
       if (filter.isKonapay && !r.isKonapay) return false;
       if (filter.isMobeom && !r.isMobeom) return false;
+      if (!_matchesCategory(r, filter.category)) return false;
       return true;
     }).toList();
   }

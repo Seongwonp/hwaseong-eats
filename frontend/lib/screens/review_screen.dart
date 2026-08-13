@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -233,7 +234,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _contentController,
-                    maxLength: 500,
+                    maxLength: 100,
                     maxLines: 6,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
@@ -261,10 +262,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      '$contentLength / 500',
+                      '$contentLength / 100',
                       style: TextStyle(
                         fontSize: 12,
-                        color: contentLength > 450
+                        color: contentLength > 80
                             ? AppColors.primary
                             : const Color(0xFFAAAAAA),
                       ),
@@ -467,10 +468,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 
   Future<void> _submit() async {
-    if (_rating == null) {
-      _showSnack('별점을 선택해주세요');
-      return;
-    }
     if (_contentController.text.trim().isEmpty) {
       _showSnack('리뷰 내용을 입력해주세요');
       return;
@@ -500,8 +497,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       final total = (res.data['total_points'] as num?)?.toInt() ?? auth.points;
       ref.read(authProvider.notifier).refreshPoints(total);
       if (mounted) _showRewardDialog(earned);
-    } catch (_) {
-      if (mounted) _showRewardDialog(500);
+    } catch (e) {
+      if (mounted) {
+        final msg = e is DioException && e.response?.statusCode == 409
+            ? '이미 이 음식점에 식사평을 남겼어요.'
+            : '등록에 실패했어요. 다시 시도해 주세요.';
+        _showSnack(msg);
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

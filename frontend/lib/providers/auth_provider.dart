@@ -56,7 +56,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoggedIn: true,
         nickname: user['nickname'] as String?,
         points: (user['points'] as num?)?.toInt() ?? 0,
-        isVerified: user['is_verified'] as bool? ?? false,
+        isVerified: user['is_resident_verified'] as bool? ?? false,
       );
     } catch (_) {
       // 토큰 만료 등 → 로그아웃 상태 유지
@@ -95,7 +95,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         nickname: user['nickname'] as String?,
         points: (user['points'] as num?)?.toInt() ?? 0,
-        isVerified: user['is_verified'] as bool? ?? false,
+        isVerified: user['is_resident_verified'] as bool? ?? false,
       );
       return true;
     } catch (e) {

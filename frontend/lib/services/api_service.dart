@@ -143,4 +143,17 @@ class ApiService {
   Future<Response> getMyReviews() {
     return _dio.get('${ApiConstants.reviews}/me');
   }
+
+  // ── 포인트 ────────────────────────────────────────────────
+
+  Future<Response> getMyPoints({int limit = 50, int offset = 0}) {
+    return _dio.get(ApiConstants.myPoints, queryParameters: {
+      'limit': limit,
+      'offset': offset,
+    });
+  }
+
+  Future<Response> exchangePoints(int points) {
+    return _dio.post('${ApiConstants.myPoints}/exchange', data: {'points': points});
+  }
 }
