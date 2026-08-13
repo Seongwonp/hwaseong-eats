@@ -100,23 +100,6 @@ class _RestaurantDetailScreenState extends ConsumerState<RestaurantDetailScreen>
                     const SizedBox(height: 5),
                     Row(
                       children: [
-                        Container(
-                          width: 8, height: 8,
-                          decoration: const BoxDecoration(color: Color(0xFF2ECC40), shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 5),
-                        const Expanded(
-                          child: Text(
-                            '영업 중 · 21:30 영업 종료 · 라스트오더 20:40',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
                         const Icon(Icons.star_rounded, size: 15, color: Color(0xFFFFBB33)),
                         const SizedBox(width: 3),
                         Text(
@@ -206,16 +189,14 @@ class _RestaurantDetailScreenState extends ConsumerState<RestaurantDetailScreen>
             child: Column(
               children: [
                 _infoRow('장소', restaurant.address, onTap: () => _copyToClipboard(restaurant.address, '주소')),
-                const SizedBox(height: 12),
-                _infoRow('영업시간', '11:00-21:30 / 라스트오더 20:40'),
-                const SizedBox(height: 12),
-                _infoRow(
-                  '전화',
-                  restaurant.phone ?? '031-0000-0000',
-                  onTap: () => _copyToClipboard(restaurant.phone ?? '', '전화번호'),
-                ),
-                const SizedBox(height: 12),
-                _infoRow('링크', 'https://instagram.com/aaa\nhttps://facebook.com/aaa'),
+                if (restaurant.phone != null) ...[
+                  const SizedBox(height: 12),
+                  _infoRow(
+                    '전화',
+                    restaurant.phone!,
+                    onTap: () => _copyToClipboard(restaurant.phone!, '전화번호'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -507,53 +488,15 @@ class _RestaurantDetailScreenState extends ConsumerState<RestaurantDetailScreen>
                     style: TextStyle(fontSize: 12, color: Color(0xFFAAAAAA))),
                 const SizedBox(height: 14),
                 _infoTableRow('주소', restaurant.address),
-                _infoTableDivider(),
-                _infoTableRow('전화', restaurant.phone ?? '-'),
-                _infoTableDivider(),
-                _infoTableRow('영업시간', '11:00-21:30'),
-                _infoTableDivider(),
-                _infoTableRow('라스트오더', '20:40'),
+                if (restaurant.phone != null) ...[
+                  _infoTableDivider(),
+                  _infoTableRow('전화', restaurant.phone!),
+                ],
                 const SizedBox(height: 24),
               ],
             ),
           ),
-          const _ThickDivider(),
-
-          // ── 요일별 영업시간 섹션
-          Padding(
-            padding: pad.copyWith(top: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('요일별 영업시간', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                const Text('현재 확인 가능한 정보 기준',
-                    style: TextStyle(fontSize: 12, color: Color(0xFFAAAAAA))),
-                const SizedBox(height: 12),
-                ..._buildWeeklyHours(),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-          const _ThickDivider(),
-
-          // ── 이용 안내 섹션
-          Padding(
-            padding: pad.copyWith(top: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('이용 안내', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 14),
-                _infoTableRow('포장', '가능'),
-                _infoTableDivider(),
-                _infoTableRow('배달', '가능'),
-                _infoTableDivider(),
-                _infoTableRow('주차', '정보 확인 필요'),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
+          _buildHoursPlaceholder(pad),
           const _ThickDivider(),
 
           // ── 위치 섹션
@@ -693,20 +636,37 @@ class _RestaurantDetailScreenState extends ConsumerState<RestaurantDetailScreen>
 
   Widget _infoTableDivider() => const Divider(height: 1, color: Color(0xFFF0F0F0));
 
-  List<Widget> _buildWeeklyHours() {
-    const days = ['월', '화', '수', '목', '금', '토', '일'];
-    return days.map((d) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+  Widget _buildHoursPlaceholder(EdgeInsets pad) {
+    return Padding(
+      padding: pad.copyWith(top: 20, bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 24, child: Text(d, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary))),
-          const SizedBox(width: 24),
-          const Text('11:00-21:30', style: TextStyle(fontSize: 13, color: AppColors.textPrimary)),
-          const Spacer(),
-          const Text('라스트오더 20:40', style: TextStyle(fontSize: 12, color: Color(0xFFAAAAAA))),
+          const Text('영업시간', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          Row(
+            children: const [
+              Icon(Icons.schedule, size: 18, color: Color(0xFFBBBBBB)),
+              SizedBox(width: 8),
+              Text('영업시간 정보가 없어요',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF999999))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => _showSnackBar('영업시간 제보 기능 준비 중'),
+            icon: const Icon(Icons.edit_outlined, size: 16),
+            label: const Text('영업시간 입력하기'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: const BorderSide(color: Color(0xFFDDDDDD)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+          ),
         ],
       ),
-    )).toList();
+    );
   }
 
   Widget _keywordChip(String label, {int? count}) {

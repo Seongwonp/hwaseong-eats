@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,8 +21,13 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen> {
-  // ignore: unused_field
   KakaoMapController? _mapController;
+
+  // onCameraIdle이 연속 발화할 때 최신 요청만 반영하기 위한 카운터
+  int _boundsRequestId = 0;
+
+  static const _kMaxRadiusKm = 30.0;
+  static const _kMapQueryLimit = 100; // restaurant_provider.dart의 값과 동기화
 
   static const _categoryItems = [
     ('음식점', Icons.restaurant),
@@ -28,6 +35,38 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ('편의점', Icons.store),
     ('대형마트', Icons.shopping_cart),
   ];
+
+  // SW-NE 두 꼭짓점 사이의 haversine 거리(km)
+  static double _haversineKm(LatLng a, LatLng b) {
+    const r = 6371.0;
+    final lat1 = a.latitude * math.pi / 180;
+    final lat2 = b.latitude * math.pi / 180;
+    final dLat = (b.latitude - a.latitude) * math.pi / 180;
+    final dLng = (b.longitude - a.longitude) * math.pi / 180;
+    final x = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1) * math.cos(lat2) * math.sin(dLng / 2) * math.sin(dLng / 2);
+    return r * 2 * math.atan2(math.sqrt(x), math.sqrt(1 - x));
+  }
+
+  // 카메라 이동 완료 콜백.
+  // getBounds()가 async이므로 _boundsRequestId로 stale 응답을 버림.
+  Future<void> _onCameraIdle(LatLng center, int zoomLevel) async {
+    final requestId = ++_boundsRequestId;
+    final controller = _mapController;
+    if (controller == null) return;
+
+    final bounds = await controller.getBounds();
+    if (requestId != _boundsRequestId) return; // 더 최신 요청이 있으면 무시
+
+    final diagonal = _haversineKm(bounds.sw, bounds.ne);
+    final radiusKm = math.min(diagonal / 2, _kMaxRadiusKm);
+
+    ref.read(mapBoundsProvider.notifier).state = (
+      lat: center.latitude,
+      lng: center.longitude,
+      radiusKm: radiusKm,
+    );
+  }
 
   List<Marker> _buildMarkers(List<Restaurant> restaurants) {
     return restaurants
@@ -40,9 +79,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _onMarkerTap(String markerId, LatLng latLng, int zoomLevel) {
-    final filter = ref.read(filterProvider);
     final restaurants =
-        ref.read(restaurantsFutureProvider(filter)).valueOrNull ?? [];
+        ref.read(mapRestaurantsProvider).valueOrNull?.restaurants ?? [];
     final idx = restaurants.indexWhere((r) => r.id.toString() == markerId);
     if (idx == -1) return;
     showModalBottomSheet(
@@ -57,9 +95,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final filter = ref.watch(filterProvider);
-    final restaurantsAsync = ref.watch(restaurantsFutureProvider(filter));
-    final restaurants = restaurantsAsync.valueOrNull ?? [];
+    final mapAsync = ref.watch(mapRestaurantsProvider);
+    final restaurants = mapAsync.valueOrNull?.restaurants ?? [];
+    final total = mapAsync.valueOrNull?.total ?? 0;
     final todayEvent = ref.watch(todayEventProvider).valueOrNull;
+    final isOverLimit = total > _kMapQueryLimit;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -69,6 +109,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           KakaoMap(
             onMapCreated: (c) => _mapController = c,
             onMarkerTap: _onMarkerTap,
+            onCameraIdle: _onCameraIdle,
             center: LatLng(37.1996, 126.8312),
             currentLevel: 8,
             markers: _buildMarkers(restaurants),
@@ -158,18 +199,41 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       ),
                     ),
 
+                    // 결과 100건 초과 안내
+                    if (isOverLimit)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        color: const Color(0xFFFFF8EC),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.zoom_in,
+                                size: 16, color: Color(0xFFCC8800)),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                '이 지역에 음식점이 $total개 있어요. 지도를 확대하면 더 정확하게 볼 수 있어요.',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Color(0xFFCC8800)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     const Divider(height: 1, color: Color(0xFFF0F0F0)),
 
                     // 음식점 목록
                     Expanded(
-                      child: restaurantsAsync.isLoading
+                      child: mapAsync.isLoading
                           ? const Center(
                               child: CircularProgressIndicator(
                                   color: AppColors.primary))
-                          : restaurantsAsync.hasError
+                          : mapAsync.hasError
                               ? _RestaurantLoadError(
-                                  onRetry: () => ref.invalidate(
-                                      restaurantsFutureProvider(filter)),
+                                  onRetry: () =>
+                                      ref.invalidate(mapRestaurantsProvider),
                                 )
                               : restaurants.isEmpty
                                   ? const _EmptyListPlaceholder()
@@ -499,7 +563,8 @@ class _RestaurantLoadError extends StatelessWidget {
         children: [
           const Icon(Icons.cloud_off, size: 40, color: Color(0xFFCCCCCC)),
           const SizedBox(height: 8),
-          const Text('음식점 정보를 불러오지 못했어요', style: TextStyle(color: Colors.grey)),
+          const Text('음식점 정보를 불러오지 못했어요',
+              style: TextStyle(color: Colors.grey)),
           TextButton(onPressed: onRetry, child: const Text('다시 시도')),
         ],
       ),

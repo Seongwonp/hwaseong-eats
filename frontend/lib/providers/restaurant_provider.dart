@@ -153,21 +153,42 @@ final restaurantProvider = Provider<List<Restaurant>>((ref) {
 
 final selectedRestaurantProvider = StateProvider<Restaurant?>((ref) => null);
 
-// 실제 API에서 음식점 목록 조회
-final restaurantsFutureProvider =
-    FutureProvider.family<List<Restaurant>, FilterState>((ref, filter) async {
+// 지도 bounds 타입 (named record)
+typedef MapBounds = ({double lat, double lng, double radiusKm});
+
+// 지도 bounds 상태 - 화성시 중심/25km 기본값으로 초기화
+// (초기 로드 시 bounds 없이 전체 조회하는 API 이중 호출 방지)
+final mapBoundsProvider = StateProvider<MapBounds?>((ref) => (
+  lat: 37.1996,
+  lng: 126.8312,
+  radiusKm: 25.0,
+));
+
+// filterProvider + mapBoundsProvider 양쪽을 watch하는 통합 지도용 provider.
+// Riverpod이 의존성 변경 시 이전 Future를 자동 폐기하므로 race condition 없음.
+const _kMapQueryLimit = 100;
+
+final mapRestaurantsProvider =
+    FutureProvider<({List<Restaurant> restaurants, int total})>((ref) async {
+  final filter = ref.watch(filterProvider);
+  final bounds = ref.watch(mapBoundsProvider);
+
   final res = await ApiService().getRestaurants(
     isKonapay: filter.isKonapay ? true : null,
     isMobeom: filter.isMobeom ? true : null,
-    limit: 100,
+    lat: bounds?.lat,
+    lng: bounds?.lng,
+    radiusKm: bounds?.radiusKm,
+    limit: _kMapQueryLimit,
   );
-  final items = res.data['items'] as List<dynamic>? ?? [];
-  final restaurants =
+  final data = res.data as Map<String, dynamic>;
+  final total = data['total'] as int? ?? 0;
+  final items = data['items'] as List<dynamic>? ?? [];
+  var restaurants =
       items.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
   if (filter.category != null) {
-    return restaurants
-        .where((r) => _matchesCategory(r, filter.category))
-        .toList();
+    restaurants =
+        restaurants.where((r) => _matchesCategory(r, filter.category)).toList();
   }
-  return restaurants;
+  return (restaurants: restaurants, total: total);
 });
