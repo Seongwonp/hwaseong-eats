@@ -283,57 +283,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showNicknameEdit() {
-    final ctrl = TextEditingController(text: ref.read(authProvider).nickname ?? '');
-    showDialog(
+    showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('닉네임 변경',
-            style: TextStyle(
-                fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          maxLength: 10,
-          decoration: InputDecoration(
-            hintText: '2~10자 입력',
-            hintStyle: const TextStyle(fontSize: 13),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primary)),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('취소')),
-          TextButton(
-            onPressed: () async {
-              final trimmed = ctrl.text.trim();
-              if (trimmed.length < 2) return;
-              Navigator.pop(ctx);
-              final err = await ref.read(authProvider.notifier).updateNickname(trimmed);
-              if (!mounted) return;
-              if (err != null) {
-                _showMessage(err);
-              } else {
-                _showMessage('닉네임이 변경됐어요');
-              }
-            },
-            child: const Text('변경',
-                style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
+      builder: (_) => _NicknameDialog(
+        initialNickname: ref.read(authProvider).nickname ?? '',
       ),
-    ).then((_) => ctrl.dispose());
+    ).then((trimmed) async {
+      if (trimmed == null || trimmed.length < 2) return;
+      final err = await ref.read(authProvider.notifier).updateNickname(trimmed);
+      if (!mounted) return;
+      _showMessage(err ?? '닉네임이 변경됐어요');
+    });
   }
 
   void _confirmWithdraw() {
@@ -543,6 +503,70 @@ class _NavRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _NicknameDialog extends StatefulWidget {
+  final String initialNickname;
+  const _NicknameDialog({required this.initialNickname});
+
+  @override
+  State<_NicknameDialog> createState() => _NicknameDialogState();
+}
+
+class _NicknameDialogState extends State<_NicknameDialog> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.initialNickname);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('닉네임 변경',
+          style: TextStyle(
+              fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        maxLength: 10,
+        decoration: InputDecoration(
+          hintText: '2~10자 입력',
+          hintStyle: const TextStyle(fontSize: 13),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary)),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소')),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _ctrl.text.trim()),
+          child: const Text('변경',
+              style: TextStyle(color: AppColors.primary)),
+        ),
+      ],
     );
   }
 }
