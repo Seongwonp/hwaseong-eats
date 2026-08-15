@@ -145,8 +145,10 @@ def list_restaurants(
             ),
         ]
         if search == "화성페이":
-            search_filters.append(Restaurant.is_konapay.is_(True))
-        filters.append(or_(*search_filters))
+            # 화성페이 검색은 가맹점 플래그만으로 필터링 (이름 매칭 우회)
+            filters.append(Restaurant.is_konapay.is_(True))
+        else:
+            filters.append(or_(*search_filters))
 
     if lat is not None and radius_km is not None:
         # 위경도 인덱스를 타도록 사각형으로 먼저 자른 뒤, 남은 것만 실제 거리로 거른다.

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,7 +12,9 @@ class ReviewCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     restaurant_id: int
-    tags: list[str] = Field(default_factory=list, max_length=MAX_TAGS)
+    tags: list[Annotated[str, Field(max_length=MAX_TAG_LENGTH)]] = Field(
+        default_factory=list, max_length=MAX_TAGS
+    )
     rating: int | None = Field(None, ge=1, le=5)
     comment: str | None = Field(None, max_length=100)
 

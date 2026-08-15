@@ -101,6 +101,15 @@ def verify_resident(
     return user
 
 
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """회원 탈퇴. 리뷰·포인트 내역은 CASCADE로 함께 삭제된다."""
+    db.delete(user)
+    db.commit()
+
+
 @router.get("/me/points", response_model=PointHistoryListResponse)
 def point_history(
     limit: int = Query(50, ge=1, le=100),
