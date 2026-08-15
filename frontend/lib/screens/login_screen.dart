@@ -23,13 +23,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  bool get _canSubmit => _emailCtrl.text.contains('@') && _pwCtrl.text.length >= 6;
+  bool get _canSubmit =>
+      _emailCtrl.text.contains('@') && _pwCtrl.text.length >= 6;
 
   Future<void> _login() async {
     final ok = await ref.read(authProvider.notifier).login(
-      email: _emailCtrl.text.trim(),
-      password: _pwCtrl.text,
-    );
+          email: _emailCtrl.text.trim(),
+          password: _pwCtrl.text,
+        );
     if (ok && mounted) context.go('/home');
   }
 
@@ -41,8 +42,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
-        title: const Text('로그인', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 16)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        title: const Text('로그인',
+            style: TextStyle(
+                fontFamily: 'NotoSerifKR',
+                fontWeight: FontWeight.w700,
+                fontSize: 16)),
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -50,16 +56,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('다시 오셨군요!', style: TextStyle(fontFamily: 'NotoSerifKR', fontSize: 22, fontWeight: FontWeight.w700)),
+            const Text('다시 오셨군요!',
+                style: TextStyle(
+                    fontFamily: 'NotoSerifKR',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
-            Text('이메일로 로그인해 주세요', style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.5))),
+            Text('이메일로 로그인해 주세요',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textPrimary.withValues(alpha: 0.5))),
             const SizedBox(height: 36),
-
             _label('이메일'),
             const SizedBox(height: 8),
-            _field(controller: _emailCtrl, hint: 'example@email.com', keyboardType: TextInputType.emailAddress),
+            _field(
+                controller: _emailCtrl,
+                hint: 'example@email.com',
+                keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 20),
-
             _label('비밀번호'),
             const SizedBox(height: 8),
             _field(
@@ -67,32 +81,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               hint: '6자 이상',
               obscure: _obscure,
               suffix: IconButton(
-                icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),
+                icon: Icon(
+                    _obscure
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    size: 20),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
-
             if (auth.error != null) ...[
               const SizedBox(height: 12),
-              Text(auth.error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+              Text(auth.error!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13)),
             ],
-
             const SizedBox(height: 32),
-
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: (_canSubmit && !auth.isLoading) ? _login : null,
                 child: auth.isLoading
-                    ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('로그인', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 15)),
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
+                    : const Text('로그인',
+                        style: TextStyle(
+                            fontFamily: 'NotoSerifKR',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15)),
               ),
             ),
             const SizedBox(height: 12),
             Center(
               child: TextButton(
                 onPressed: () => context.push('/signup'),
-                child: const Text('아직 계정이 없어요 → 회원가입', style: TextStyle(fontSize: 13, color: AppColors.primary)),
+                child: const Text('아직 계정이 없어요 → 회원가입',
+                    style: TextStyle(fontSize: 13, color: AppColors.primary)),
               ),
             ),
           ],
@@ -101,7 +126,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _label(String text) => Text(text, style: const TextStyle(fontFamily: 'NotoSerifKR', fontSize: 13, fontWeight: FontWeight.w700));
+  Widget _label(String text) => Text(text,
+      style: const TextStyle(
+          fontFamily: 'NotoSerifKR',
+          fontSize: 13,
+          fontWeight: FontWeight.w700));
 
   Widget _field({
     required TextEditingController controller,
@@ -121,9 +150,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         filled: true,
         fillColor: Colors.white,
         suffixIcon: suffix,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade300)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade300)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary)),
       ),
     );
   }

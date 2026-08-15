@@ -15,11 +15,19 @@ class NotificationScreen extends StatelessWidget {
           children: [
             Padding(
               padding: EdgeInsets.fromLTRB(context.hPad, 20, context.hPad, 4),
-              child: const Text('알림', style: TextStyle(fontFamily: 'NotoSerifKR', fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+              child: const Text('알림',
+                  style: TextStyle(
+                      fontFamily: 'NotoSerifKR',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary)),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(context.hPad, 0, context.hPad, 16),
-              child: Text('화성시 먹거리 소식을 확인해보세요', style: TextStyle(fontSize: 12, color: AppColors.textPrimary.withValues(alpha: 0.5))),
+              child: Text('화성시 먹거리 소식을 확인해보세요',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary.withValues(alpha: 0.5))),
             ),
             Expanded(
               child: ListView(
@@ -104,10 +112,13 @@ class _NotificationItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isUnread ? AppColors.primary.withValues(alpha: 0.04) : Colors.white,
+        color:
+            isUnread ? AppColors.primary.withValues(alpha: 0.04) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isUnread ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.shade100,
+          color: isUnread
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : Colors.grey.shade100,
         ),
       ),
       child: Row(
@@ -135,7 +146,8 @@ class _NotificationItem extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'NotoSerifKR',
                           fontSize: 13,
-                          fontWeight: isUnread ? FontWeight.w700 : FontWeight.w400,
+                          fontWeight:
+                              isUnread ? FontWeight.w700 : FontWeight.w400,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -144,25 +156,35 @@ class _NotificationItem extends StatelessWidget {
                       Container(
                         width: 6,
                         height: 6,
-                        decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                        decoration: const BoxDecoration(
+                            color: AppColors.primary, shape: BoxShape.circle),
                       ),
                   ],
                 ),
                 const SizedBox(height: 3),
-                Text(body, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                Text(body,
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(timeAgo, style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                    Text(timeAgo,
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey.shade400)),
                     if (hasAction && actionLabel != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(actionLabel!, style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700)),
+                        child: Text(actionLabel!,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700)),
                       ),
                   ],
                 ),

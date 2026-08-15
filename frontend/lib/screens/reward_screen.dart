@@ -11,7 +11,8 @@ class _PointItem {
   final int delta;
   final String reason;
   final String date;
-  const _PointItem({required this.delta, required this.reason, required this.date});
+  const _PointItem(
+      {required this.delta, required this.reason, required this.date});
 }
 
 // 포인트 내역 전체 (잔액 + 목록)
@@ -28,7 +29,8 @@ final _pointDataProvider = FutureProvider<_PointData>((ref) async {
   final items = rawItems.map((e) {
     final map = e as Map<String, dynamic>;
     final dt = DateTime.parse(map['created_at'] as String).toLocal();
-    final date = '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
+    final date =
+        '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
     return _PointItem(
       delta: (map['delta'] as num).toInt(),
       reason: map['reason'] as String,
@@ -52,7 +54,10 @@ class RewardScreen extends ConsumerWidget {
         backgroundColor: AppColors.background,
         title: const Text(
           '리워드',
-          style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 16),
+          style: TextStyle(
+              fontFamily: 'NotoSerifKR',
+              fontWeight: FontWeight.w700,
+              fontSize: 16),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -64,12 +69,14 @@ class RewardScreen extends ConsumerWidget {
         error: (_, __) => _RewardBody(
           balance: authPoints,
           items: const [],
-          onExchange: (ctx, balance, onDone) => _doExchange(ctx, ref, balance, onDone),
+          onExchange: (ctx, balance, onDone) =>
+              _doExchange(ctx, ref, balance, onDone),
         ),
         data: (data) => _RewardBody(
           balance: data.balance,
           items: data.items,
-          onExchange: (ctx, balance, onDone) => _doExchange(ctx, ref, balance, onDone),
+          onExchange: (ctx, balance, onDone) =>
+              _doExchange(ctx, ref, balance, onDone),
         ),
       ),
     );
@@ -107,7 +114,8 @@ class _RewardBody extends StatelessWidget {
   final List<_PointItem> items;
   final Future<void> Function(BuildContext, int, VoidCallback) onExchange;
 
-  const _RewardBody({required this.balance, required this.items, required this.onExchange});
+  const _RewardBody(
+      {required this.balance, required this.items, required this.onExchange});
 
   @override
   Widget build(BuildContext context) {
@@ -132,14 +140,20 @@ class _RewardBody extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('볏섬 포인트', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const Text('볏섬 포인트',
+                        style: TextStyle(color: Colors.white70, fontSize: 13)),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text('화성주민 인증', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                      child: const Text('화성주민 인증',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ),
@@ -149,17 +163,26 @@ class _RewardBody extends StatelessWidget {
                   children: [
                     Text(
                       '$balance',
-                      style: const TextStyle(fontFamily: 'NotoSerifKR', color: Colors.white, fontSize: 40, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                          fontFamily: 'NotoSerifKR',
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(width: 6),
                     const Padding(
                       padding: EdgeInsets.only(bottom: 6),
-                      child: Text('P', style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.w700)),
+                      child: Text('P',
+                          style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text('화성인증 식사평 1건당 +500P', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                const Text('화성인증 식사평 1건당 +500P',
+                    style: TextStyle(color: Colors.white60, fontSize: 12)),
               ],
             ),
           ),
@@ -170,16 +193,22 @@ class _RewardBody extends StatelessWidget {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: balance >= 1000 ? () => _showConvertDialog(context) : null,
+                onPressed:
+                    balance >= 1000 ? () => _showConvertDialog(context) : null,
                 icon: const Text('💳', style: TextStyle(fontSize: 16)),
-                label: const Text('화성페이로 전환하기', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+                label: const Text('화성페이로 전환하기',
+                    style: TextStyle(
+                        fontFamily: 'NotoSerifKR',
+                        fontWeight: FontWeight.w700)),
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '1,000P = 1,000원 화성페이 (최소 1,000P)',
-            style: TextStyle(fontSize: 12, color: AppColors.textPrimary.withValues(alpha: 0.5)),
+            style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textPrimary.withValues(alpha: 0.5)),
           ),
 
           const SizedBox(height: 28),
@@ -187,11 +216,16 @@ class _RewardBody extends StatelessWidget {
           // 포인트 적립 방법
           Padding(
             padding: EdgeInsets.symmetric(horizontal: context.hPad),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('포인트 적립 방법', style: TextStyle(fontFamily: 'NotoSerifKR', fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                const SizedBox(height: 12),
+                Text('포인트 적립 방법',
+                    style: TextStyle(
+                        fontFamily: 'NotoSerifKR',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary)),
+                SizedBox(height: 12),
                 _EarnCard(
                   emoji: '🏅',
                   title: '화성인증 식사평',
@@ -210,17 +244,23 @@ class _RewardBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('포인트 내역', style: TextStyle(fontFamily: 'NotoSerifKR', fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                const Text('포인트 내역',
+                    style: TextStyle(
+                        fontFamily: 'NotoSerifKR',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary)),
                 const SizedBox(height: 12),
                 if (items.isEmpty)
-                  const Text('아직 내역이 없어요.', style: TextStyle(fontSize: 13, color: Colors.grey))
+                  const Text('아직 내역이 없어요.',
+                      style: TextStyle(fontSize: 13, color: Colors.grey))
                 else
                   ...items.map((h) => _HistoryRow(
-                    text: h.reason,
-                    point: h.delta,
-                    date: h.date,
-                    isEarn: h.delta > 0,
-                  )),
+                        text: h.reason,
+                        point: h.delta,
+                        date: h.date,
+                        isEarn: h.delta > 0,
+                      )),
               ],
             ),
           ),
@@ -236,13 +276,18 @@ class _RewardBody extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('화성페이 전환', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+        title: const Text('화성페이 전환',
+            style: TextStyle(
+                fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('1,000 P를 화성페이 1,000원으로\n전환할까요?', textAlign: TextAlign.center, style: TextStyle(fontSize: 14)),
+            Text('1,000 P를 화성페이 1,000원으로\n전환할까요?',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 14)),
             SizedBox(height: 12),
-            Text('전환된 화성페이는 화성시 가맹점에서\n사용할 수 있어요', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Text('전환된 화성페이는 화성시 가맹점에서\n사용할 수 있어요',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         actions: [
@@ -255,7 +300,9 @@ class _RewardBody extends StatelessWidget {
               Navigator.pop(context);
               onExchange(context, balance, () {});
             },
-            child: const Text('전환하기', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+            child: const Text('전환하기',
+                style: TextStyle(
+                    fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -269,7 +316,11 @@ class _EarnCard extends StatelessWidget {
   final String desc;
   final String point;
 
-  const _EarnCard({required this.emoji, required this.title, required this.desc, required this.point});
+  const _EarnCard(
+      {required this.emoji,
+      required this.title,
+      required this.desc,
+      required this.point});
 
   @override
   Widget build(BuildContext context) {
@@ -288,13 +339,23 @@ class _EarnCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 13)),
+                Text(title,
+                    style: const TextStyle(
+                        fontFamily: 'NotoSerifKR',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13)),
                 const SizedBox(height: 2),
-                Text(desc, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(desc,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
-          Text(point, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.primary)),
+          Text(point,
+              style: const TextStyle(
+                  fontFamily: 'NotoSerifKR',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: AppColors.primary)),
         ],
       ),
     );
@@ -307,7 +368,11 @@ class _HistoryRow extends StatelessWidget {
   final String date;
   final bool isEarn;
 
-  const _HistoryRow({required this.text, required this.point, required this.date, required this.isEarn});
+  const _HistoryRow(
+      {required this.text,
+      required this.point,
+      required this.date,
+      required this.isEarn});
 
   @override
   Widget build(BuildContext context) {
@@ -319,9 +384,14 @@ class _HistoryRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(text, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(text,
+                    style: const TextStyle(
+                        fontFamily: 'NotoSerifKR',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13)),
                 const SizedBox(height: 2),
-                Text(date, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(date,
+                    style: const TextStyle(fontSize: 11, color: Colors.grey)),
               ],
             ),
           ),

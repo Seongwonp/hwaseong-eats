@@ -16,35 +16,42 @@ class AttributeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: options.map((opt) => Expanded(
-        child: Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: GestureDetector(
-            onTap: () => onSelect(opt),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: selected == opt ? AppColors.primary : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: selected == opt ? AppColors.primary : Colors.grey.shade300,
+      children: options
+          .map((opt) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () => onSelect(opt),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color:
+                            selected == opt ? AppColors.primary : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected == opt
+                              ? AppColors.primary
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        opt,
+                        style: TextStyle(
+                          fontFamily: 'NotoSerifKR',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: selected == opt
+                              ? Colors.white
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                opt,
-                style: TextStyle(
-                  fontFamily: 'NotoSerifKR',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: selected == opt ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-            ),
-          ),
-        ),
-      )).toList(),
+              ))
+          .toList(),
     );
   }
 }

@@ -28,7 +28,8 @@ class RestaurantBottomSheet extends StatelessWidget {
           // 핸들
           Center(
             child: Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
@@ -57,7 +58,7 @@ class RestaurantBottomSheet extends StatelessWidget {
                         ),
                         if (restaurant.isKonapay) ...[
                           const SizedBox(width: 8),
-                          _Badge('💳 화성페이', AppColors.markerPay),
+                          const _Badge('💳 화성페이', AppColors.markerPay),
                         ],
                       ],
                     ),
@@ -72,7 +73,8 @@ class RestaurantBottomSheet extends StatelessWidget {
                   ],
                 ),
               ),
-              if (restaurant.isMobeom) _Badge('🏆 모범음식점', Colors.blue),
+              if (restaurant.isMobeom)
+                const _Badge('🏆 모범음식점', Colors.blue),
             ],
           ),
 
@@ -112,7 +114,9 @@ class RestaurantBottomSheet extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: AppColors.textPrimary.withValues(alpha: 0.4)),
+                Icon(Icons.info_outline,
+                    size: 16,
+                    color: AppColors.textPrimary.withValues(alpha: 0.4)),
                 const SizedBox(width: 8),
                 Text(
                   '아직 화성인증 식사평이 없어요',
@@ -133,9 +137,11 @@ class RestaurantBottomSheet extends StatelessWidget {
             child: FilledButton(
               onPressed: () {
                 Navigator.pop(context);
-                context.push('/review/${restaurant.id}', extra: restaurant.name);
+                context.push('/review/${restaurant.id}', extra: restaurant);
               },
-              child: const Text('식사평 남기기', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+              child: const Text('식사평 남기기',
+                  style: TextStyle(
+                      fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
             ),
           ),
           const SizedBox(height: 8),
@@ -158,8 +164,9 @@ class _Badge extends StatelessWidget {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+      child: Text(text,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w700, color: color)),
     );
   }
 }
-

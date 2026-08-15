@@ -28,7 +28,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               // ── 타이틀 ────────────────────────────────────
               Padding(
-                padding: EdgeInsets.fromLTRB(context.hPad, 20, context.hPad, 16),
+                padding:
+                    EdgeInsets.fromLTRB(context.hPad, 20, context.hPad, 16),
                 child: const Text(
                   '내 정보',
                   style: TextStyle(
@@ -116,7 +117,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 12),
 
                 // 인증
-                _SectionLabel(label: '인증'),
+                const _SectionLabel(label: '인증'),
                 _Card(
                   child: Padding(
                     padding: EdgeInsets.all(context.hPad),
@@ -124,7 +125,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         // 방패 아이콘
                         Container(
-                          width: 48, height: 48,
+                          width: 48,
+                          height: 48,
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.08),
                             shape: BoxShape.circle,
@@ -145,9 +147,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              auth.isVerified
-                                  ? '2027-02-01까지 유효'
-                                  : '인증이 필요해요',
+                              auth.isVerified ? '2027-02-01까지 유효' : '인증이 필요해요',
                               style: const TextStyle(
                                   fontSize: 12, color: Color(0xFF999999)),
                             ),
@@ -179,7 +179,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
 
               // ── 설정 ──────────────────────────────────────
-              _SectionLabel(label: '설정'),
+              const _SectionLabel(label: '설정'),
               _Card(
                 child: Column(
                   children: [
@@ -200,7 +200,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _ToggleRow(
                       label: '알림',
                       value: _notificationEnabled,
-                      onChanged: (v) => setState(() => _notificationEnabled = v),
+                      onChanged: (v) =>
+                          setState(() => _notificationEnabled = v),
                     ),
                     _Divider(),
                     _NavRow(
@@ -269,8 +270,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _showSnack(String label) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text('$label — 준비 중'),
-          duration: const Duration(seconds: 1)),
+          content: Text('$label — 준비 중'), duration: const Duration(seconds: 1)),
     );
   }
 
@@ -280,12 +280,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('회원 탈퇴',
-            style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
         content: const Text('탈퇴하면 모든 데이터가 삭제됩니다.\n정말 탈퇴하시겠어요?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('취소')),
+              onPressed: () => Navigator.pop(context), child: const Text('취소')),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -314,7 +314,8 @@ class _LoggedInProfile extends StatelessWidget {
         children: [
           // 아바타
           Container(
-            width: 52, height: 52,
+            width: 52,
+            height: 52,
             decoration: const BoxDecoration(
               color: Color(0xFFFFDDD0),
               shape: BoxShape.circle,
@@ -350,12 +351,10 @@ class _LoggedInProfile extends StatelessWidget {
               side: const BorderSide(color: Color(0xFFCCCCCC)),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             ),
             child: const Text('정보 수정',
-                style:
-                    TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -365,8 +364,7 @@ class _LoggedInProfile extends StatelessWidget {
   void _showSnack(BuildContext context, String label) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text('$label — 준비 중'),
-          duration: const Duration(seconds: 1)),
+          content: Text('$label — 준비 중'), duration: const Duration(seconds: 1)),
     );
   }
 }
@@ -383,13 +381,14 @@ class _LoggedOutProfile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 52, height: 52,
+              width: 52,
+              height: 52,
               decoration: const BoxDecoration(
                 color: Color(0xFFEEEEEE),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.person,
-                  color: Color(0xFFBBBBBB), size: 30),
+              child:
+                  const Icon(Icons.person, color: Color(0xFFBBBBBB), size: 30),
             ),
             const SizedBox(width: 14),
             const Text(
@@ -401,8 +400,7 @@ class _LoggedOutProfile extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.chevron_right,
-                color: Color(0xFFCCCCCC), size: 20),
+            const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 20),
           ],
         ),
       ),
@@ -450,7 +448,11 @@ class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Divider(
-        height: 1, thickness: 1, color: Color(0xFFF2F2F2), indent: 20, endIndent: 20);
+        height: 1,
+        thickness: 1,
+        color: Color(0xFFF2F2F2),
+        indent: 20,
+        endIndent: 20);
   }
 }
 
@@ -485,9 +487,7 @@ class _NavRow extends StatelessWidget {
             Expanded(
               child: Text(label,
                   style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: color)),
+                      fontSize: 14, fontWeight: FontWeight.w500, color: color)),
             ),
             Icon(Icons.chevron_right,
                 size: 18, color: color.withValues(alpha: 0.4)),
@@ -525,7 +525,7 @@ class _ToggleRow extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           ),
         ],
       ),

@@ -132,10 +132,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final newShowSearch = moved && zoomLevel <= _kTooFarZoomLevel;
 
     // 바뀐 게 없으면 rebuild 생략 (연속 발화 방어)
-    final samePos =
-        (center.latitude - _pendingCenter.latitude).abs() < 1e-7 &&
+    final samePos = (center.latitude - _pendingCenter.latitude).abs() < 1e-7 &&
         (center.longitude - _pendingCenter.longitude).abs() < 1e-7;
-    if (samePos && zoomLevel == _zoomLevel && newShowSearch == _showSearchHere) {
+    if (samePos &&
+        zoomLevel == _zoomLevel &&
+        newShowSearch == _showSearchHere) {
       return;
     }
 
@@ -241,8 +242,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               return Container(
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   boxShadow: [
                     BoxShadow(
                       color: Color(0x1A000000),
@@ -271,12 +271,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       padding: EdgeInsets.fromLTRB(
                           context.hPad, 6, context.hPad, 10),
                       child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 '화성시',
@@ -292,13 +290,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   isOverLimit
-                                      ? '가까운 음식점 ${_kMaxDisplayCount}개를 표시하고 있어요'
+                                      ? '가까운 음식점 $_kMaxDisplayCount개를 표시하고 있어요'
                                       : restaurants.isEmpty
                                           ? '주변 음식점을 찾을 수 없어요'
                                           : '${restaurants.length}개 음식점',
                                   style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF999999)),
+                                      fontSize: 11, color: Color(0xFF999999)),
                                 ),
                               ],
                             ],
@@ -307,8 +304,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             active: filter.isKonapay,
                             onTap: () => ref
                                 .read(filterProvider.notifier)
-                                .update((s) =>
-                                    s.copyWith(isKonapay: !s.isKonapay)),
+                                .update(
+                                    (s) => s.copyWith(isKonapay: !s.isKonapay)),
                           ),
                         ],
                       ),
@@ -324,23 +321,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                   color: AppColors.primary))
                           : mapAsync.hasError
                               ? _ErrorView(
-                                  onRetry: () => ref
-                                      .invalidate(mapRestaurantsProvider),
+                                  onRetry: () =>
+                                      ref.invalidate(mapRestaurantsProvider),
                                 )
                               : restaurants.isEmpty
                                   ? const _EmptyView()
                                   : ListView.separated(
                                       controller: scrollController,
-                                      padding: const EdgeInsets.only(
-                                          bottom: 32),
+                                      padding:
+                                          const EdgeInsets.only(bottom: 32),
                                       itemCount: restaurants.length,
                                       separatorBuilder: (_, __) =>
                                           const Divider(
                                               height: 1,
                                               color: Color(0xFFF0F0F0)),
-                                      itemBuilder: (_, i) =>
-                                          _MapRestaurantCard(
-                                              restaurant: restaurants[i]),
+                                      itemBuilder: (_, i) => _MapRestaurantCard(
+                                          restaurant: restaurants[i]),
                                     ),
                     ),
                   ],
@@ -354,8 +350,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             bottom: panelOffset,
             left: 16,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(20),
@@ -396,8 +391,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primary),
+                              strokeWidth: 2, color: AppColors.primary),
                         )
                       : const Icon(Icons.my_location,
                           color: AppColors.primary, size: 22),
@@ -415,8 +409,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
                 // 검색바
                 Padding(
-                  padding: EdgeInsets.fromLTRB(
-                      context.hPad, 10, context.hPad, 0),
+                  padding:
+                      EdgeInsets.fromLTRB(context.hPad, 10, context.hPad, 0),
                   child: GestureDetector(
                     onTap: () => context.push('/search'),
                     child: Container(
@@ -427,8 +421,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         borderRadius: BorderRadius.circular(50),
                         boxShadow: [
                           BoxShadow(
-                            color:
-                                Colors.black.withValues(alpha: 0.12),
+                            color: Colors.black.withValues(alpha: 0.12),
                             blurRadius: 12,
                             offset: const Offset(0, 3),
                           ),
@@ -467,8 +460,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   height: 38,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding:
-                        EdgeInsets.symmetric(horizontal: context.hPad),
+                    padding: EdgeInsets.symmetric(horizontal: context.hPad),
                     itemCount: _categoryItems.length,
                     itemBuilder: (_, i) {
                       final (label, icon) = _categoryItems[i];
@@ -476,25 +468,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: GestureDetector(
-                          onTap: () =>
-                              ref.read(filterProvider.notifier).update(
-                                    (s) => selected
-                                        ? s.copyWith(clearCategory: true)
-                                        : s.copyWith(category: label),
-                                  ),
+                          onTap: () => ref.read(filterProvider.notifier).update(
+                                (s) => selected
+                                    ? s.copyWith(clearCategory: true)
+                                    : s.copyWith(category: label),
+                              ),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 180),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
-                              color: selected
-                                  ? AppColors.primary
-                                  : Colors.white,
+                              color:
+                                  selected ? AppColors.primary : Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black
-                                      .withValues(alpha: 0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -535,8 +523,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
                     child: isTooFarOut
-                        ? _MapHintChip(
-                            key: const ValueKey('zoom'),
+                        ? const _MapHintChip(
+                            key: ValueKey('zoom'),
                             icon: Icons.zoom_in,
                             label: '지도를 확대해 주세요',
                             onTap: null,
@@ -549,8 +537,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                 isPrimary: true,
                                 onTap: _onSearchHere,
                               )
-                            : const SizedBox.shrink(
-                                key: ValueKey('none')),
+                            : const SizedBox.shrink(key: ValueKey('none')),
                   ),
                 ),
               ],
@@ -575,8 +562,7 @@ class _KonapayToggle extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: active ? AppColors.primary : Colors.white,
           border: Border.all(color: AppColors.primary, width: 1.5),
@@ -612,13 +598,11 @@ class _MapHintChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bgColor = isPrimary ? AppColors.primary : Colors.white;
-    final fgColor =
-        isPrimary ? Colors.white : const Color(0xFF555555);
+    final fgColor = isPrimary ? Colors.white : const Color(0xFF555555);
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(24),
@@ -656,14 +640,12 @@ class _MapRestaurantCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isFav =
-        ref.watch(favoriteProvider).contains(restaurant.id);
+    final isFav = ref.watch(favoriteProvider).contains(restaurant.id);
     return InkWell(
-      onTap: () => context.push(
-          '/restaurant/${restaurant.id}', extra: restaurant),
+      onTap: () =>
+          context.push('/restaurant/${restaurant.id}', extra: restaurant),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-            context.hPad, 14, context.hPad, 14),
+        padding: EdgeInsets.fromLTRB(context.hPad, 14, context.hPad, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -688,8 +670,8 @@ class _MapRestaurantCard extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            border: Border.all(
-                                color: AppColors.primary, width: 1),
+                            border:
+                                Border.all(color: AppColors.primary, width: 1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
@@ -707,18 +689,14 @@ class _MapRestaurantCard extends ConsumerWidget {
                 const SizedBox(width: 8),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => ref
-                      .read(favoriteProvider.notifier)
-                      .toggle(restaurant.id),
+                  onTap: () =>
+                      ref.read(favoriteProvider.notifier).toggle(restaurant.id),
                   child: Padding(
                     padding: const EdgeInsets.only(top: 1),
                     child: Icon(
-                      isFav
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: isFav
-                          ? AppColors.primary
-                          : const Color(0xFFCCCCCC),
+                      isFav ? Icons.favorite : Icons.favorite_border,
+                      color:
+                          isFav ? AppColors.primary : const Color(0xFFCCCCCC),
                       size: 22,
                     ),
                   ),
@@ -728,13 +706,11 @@ class _MapRestaurantCard extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               restaurant.address,
-              style: const TextStyle(
-                  fontSize: 12, color: Color(0xFF999999)),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            if (restaurant.distanceKm != null ||
-                restaurant.rating != null) ...[
+            if (restaurant.distanceKm != null || restaurant.rating != null) ...[
               const SizedBox(height: 5),
               Row(
                 children: [
@@ -805,8 +781,7 @@ class _ErrorView extends StatelessWidget {
         children: [
           const Icon(Icons.cloud_off, size: 40, color: Color(0xFFCCCCCC)),
           const SizedBox(height: 8),
-          const Text('음식점 정보를 불러오지 못했어요',
-              style: TextStyle(color: Colors.grey)),
+          const Text('음식점 정보를 불러오지 못했어요', style: TextStyle(color: Colors.grey)),
           TextButton(onPressed: onRetry, child: const Text('다시 시도')),
         ],
       ),

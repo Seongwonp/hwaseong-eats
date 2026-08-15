@@ -22,7 +22,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   final Set<String> _selectedKeywords = {};
   final _contentController = TextEditingController();
   String? _recommendation; // '추천해요' | '보통이에요'
-  String? _revisit;        // '있어요' | '잘 모르겠어요'
+  String? _revisit; // '있어요' | '잘 모르겠어요'
   bool _submitting = false;
 
   static const _keywords = ['가성비', '카공족', '혼밥', '10대 픽'];
@@ -91,33 +91,38 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     const SizedBox(height: 3),
                     Text(
                       restaurant.category!,
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF888888)),
+                      style: const TextStyle(
+                          fontSize: 13, color: Color(0xFF888888)),
                     ),
                   ],
                   if (restaurant.address.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
                       restaurant.address,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFFAAAAAA)),
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFFAAAAAA)),
                     ),
                   ],
                   const SizedBox(height: 12),
                   // 방문 인증 안내
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF6F6F6),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline, size: 14, color: Color(0xFF888888)),
+                        Icon(Icons.info_outline,
+                            size: 14, color: Color(0xFF888888)),
                         SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             '영수증 인증 기능 준비 중 · 현재 리뷰는 일반 리뷰로 등록돼요',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
+                            style: TextStyle(
+                                fontSize: 12, color: Color(0xFF888888)),
                           ),
                         ),
                       ],
@@ -152,9 +157,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         child: Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: Icon(
-                            filled ? Icons.star_rounded : Icons.star_outline_rounded,
+                            filled
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
                             size: 44,
-                            color: filled ? const Color(0xFFFFBB33) : const Color(0xFFDDDDDD),
+                            color: filled
+                                ? const Color(0xFFFFBB33)
+                                : const Color(0xFFDDDDDD),
                           ),
                         ),
                       );
@@ -194,12 +203,17 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         }),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 160),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
-                            color: selected ? AppColors.primary : const Color(0xFFF4F4F4),
+                            color: selected
+                                ? AppColors.primary
+                                : const Color(0xFFF4F4F4),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: selected ? AppColors.primary : const Color(0xFFEEEEEE),
+                              color: selected
+                                  ? AppColors.primary
+                                  : const Color(0xFFEEEEEE),
                             ),
                           ),
                           child: Text(
@@ -207,7 +221,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: selected ? Colors.white : AppColors.textPrimary,
+                              color: selected
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
                             ),
                           ),
                         ),
@@ -238,8 +254,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     maxLines: 6,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      hintText: '리뷰를 입력하세요\n\n예:\n버거가 따뜻하게 나와서 좋았고 감자튀김도 바삭했어요.\n점심시간이었는데 생각보다 빠르게 받아서 만족했습니다.',
-                      hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFCCCCCC), height: 1.6),
+                      hintText:
+                          '리뷰를 입력하세요\n\n예:\n버거가 따뜻하게 나와서 좋았고 감자튀김도 바삭했어요.\n점심시간이었는데 생각보다 빠르게 받아서 만족했습니다.',
+                      hintStyle: const TextStyle(
+                          fontSize: 13, color: Color(0xFFCCCCCC), height: 1.6),
                       filled: true,
                       fillColor: const Color(0xFFF9F9F9),
                       counterText: '',
@@ -288,7 +306,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   // 추천 여부
                   const Text(
                     '이 가게를 추천하나요?',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 10),
                   _ChoiceRow(
@@ -302,7 +323,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   // 재방문 의사
                   const Text(
                     '재방문 의사가 있나요?',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 10),
                   _ChoiceRow(
@@ -327,7 +351,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       const SizedBox(width: 8),
                       const Text(
                         '선택 사항',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
+                        style:
+                            TextStyle(fontSize: 12, color: Color(0xFF999999)),
                       ),
                     ],
                   ),
@@ -345,16 +370,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add_photo_alternate_outlined, size: 32, color: Color(0xFFCCCCCC)),
+                          Icon(Icons.add_photo_alternate_outlined,
+                              size: 32, color: Color(0xFFCCCCCC)),
                           SizedBox(height: 8),
                           Text(
                             '사진 첨부 영역',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFAAAAAA)),
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFAAAAAA)),
                           ),
                           SizedBox(height: 2),
                           Text(
                             '예: 음식 사진, 매장 사진  ·  최대 10장',
-                            style: TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
+                            style: TextStyle(
+                                fontSize: 11, color: Color(0xFFBBBBBB)),
                           ),
                         ],
                       ),
@@ -374,7 +404,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 children: [
                   const Text(
                     '등록 전 확인',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 10),
                   ...[
@@ -382,17 +415,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     '방문 인증 여부는 함께 표시될 수 있습니다.',
                     '서비스 운영 정책에 따라 숨김 처리될 수 있습니다.',
                   ].map((t) => Padding(
-                    padding: const EdgeInsets.only(bottom: 5),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('· ', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
-                        Expanded(
-                          child: Text(t, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                        padding: const EdgeInsets.only(bottom: 5),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('· ',
+                                style: TextStyle(
+                                    fontSize: 12, color: Color(0xFF999999))),
+                            Expanded(
+                              child: Text(t,
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Color(0xFF999999))),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  )),
+                      )),
                 ],
               ),
             ),
@@ -411,9 +448,12 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         foregroundColor: AppColors.textPrimary,
                         side: const BorderSide(color: Color(0xFFDDDDDD)),
                         minimumSize: const Size(0, 50),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('취소', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                      child: const Text('취소',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -427,16 +467,20 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         disabledBackgroundColor: const Color(0xFFDDDDDD),
                         minimumSize: const Size(0, 50),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _submitting
                           ? const SizedBox(
-                              width: 20, height: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
                             )
                           : const Text(
                               '리뷰 등록',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                              style: TextStyle(
+                                  fontSize: 15, fontWeight: FontWeight.w700),
                             ),
                     ),
                   ),
@@ -532,7 +576,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             const SizedBox(height: 8),
             Text(
               earned > 0 ? '화성인증 식사평 등록 완료!' : '식사평 등록 완료!',
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'NotoSerifKR',
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -543,7 +587,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               earned > 0
                   ? '1,000P부터 화성페이로 전환할 수 있어요'
                   : '영수증 인증 기능이 준비되면 인증 포인트를 받을 수 있어요',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
@@ -560,10 +604,12 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 minimumSize: const Size(0, 46),
               ),
-              child: const Text('확인', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              child: const Text('확인',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
           ),
         ],
@@ -596,7 +642,8 @@ class _ChoiceRow extends StatelessWidget {
   final String? selected;
   final ValueChanged<String> onSelect;
 
-  const _ChoiceRow({required this.options, required this.selected, required this.onSelect});
+  const _ChoiceRow(
+      {required this.options, required this.selected, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -616,7 +663,9 @@ class _ChoiceRow extends StatelessWidget {
                   color: isSelected ? AppColors.primary : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : const Color(0xFFDDDDDD),
+                    color: isSelected
+                        ? AppColors.primary
+                        : const Color(0xFFDDDDDD),
                   ),
                 ),
                 alignment: Alignment.center,

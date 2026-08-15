@@ -9,14 +9,16 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
 
@@ -49,10 +51,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 40),
+                child: const Icon(Icons.restaurant_menu,
+                    color: Colors.white, size: 40),
               ),
               const SizedBox(height: 20),
-              Text(
+              const Text(
                 '볏섬',
                 style: TextStyle(
                   fontFamily: 'NotoSerifKR',

@@ -42,9 +42,13 @@ class Restaurant {
         isKonapay: json['is_konapay'] ?? false,
         isMobeom: json['is_mobeom'] ?? false,
         tags: List<String>.from(json['tags'] ?? []),
-        rating: json['avg_rating'] != null ? (json['avg_rating'] as num).toDouble() : null,
+        rating: json['avg_rating'] != null
+            ? (json['avg_rating'] as num).toDouble()
+            : null,
         reviewCount: json['review_count'] ?? 0,
         geocodeStatus: json['geocode_status'] as String? ?? 'verified',
-        distanceKm: json['distance_km'] != null ? (json['distance_km'] as num).toDouble() : null,
+        distanceKm: json['distance_km'] != null
+            ? (json['distance_km'] as num).toDouble()
+            : null,
       );
 }

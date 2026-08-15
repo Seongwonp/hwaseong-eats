@@ -30,7 +30,8 @@ class EventCard extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: event.isNear && !isPast ? _accentColor : Colors.grey.shade200,
+              color:
+                  event.isNear && !isPast ? _accentColor : Colors.grey.shade200,
               width: event.isNear && !isPast ? 1.5 : 1,
             ),
           ),
@@ -50,11 +51,18 @@ class EventCard extends StatelessWidget {
                   children: [
                     Text(
                       '${event.date.month}월',
-                      style: TextStyle(fontSize: 10, color: _accentColor, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: _accentColor,
+                          fontWeight: FontWeight.w700),
                     ),
                     Text(
                       '${event.date.day}',
-                      style: TextStyle(fontFamily: 'NotoSerifKR', fontSize: 20, fontWeight: FontWeight.w700, color: _accentColor),
+                      style: TextStyle(
+                          fontFamily: 'NotoSerifKR',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: _accentColor),
                     ),
                   ],
                 ),
@@ -70,31 +78,43 @@ class EventCard extends StatelessWidget {
                       children: [
                         Text(
                           event.name,
-                          style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 15),
+                          style: const TextStyle(
+                              fontFamily: 'NotoSerifKR',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15),
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: _accentColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             event.isFestival ? '축제' : '절기',
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _accentColor),
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: _accentColor),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 3),
-                    Text(event.foodKeyword, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(event.foodKeyword,
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey)),
                     if (event.location != null) ...[
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 11, color: Colors.grey.shade400),
+                          Icon(Icons.location_on,
+                              size: 11, color: Colors.grey.shade400),
                           const SizedBox(width: 2),
-                          Text(event.location!, style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                          Text(event.location!,
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey.shade400)),
                         ],
                       ),
                     ],

@@ -58,7 +58,12 @@ class _BottomNav extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade100, width: 1)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -2))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, -2))
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -66,11 +71,35 @@ class _BottomNav extends StatelessWidget {
           height: 60,
           child: Row(
             children: [
-              _NavItem(icon: Icons.map_outlined, activeIcon: Icons.map, label: '지도', index: 0, currentIndex: currentIndex, onTap: onTap),
-              _NavItem(icon: Icons.calendar_month_outlined, activeIcon: Icons.calendar_month, label: '캘린더', index: 1, currentIndex: currentIndex, onTap: onTap),
+              _NavItem(
+                  icon: Icons.map_outlined,
+                  activeIcon: Icons.map,
+                  label: '지도',
+                  index: 0,
+                  currentIndex: currentIndex,
+                  onTap: onTap),
+              _NavItem(
+                  icon: Icons.calendar_month_outlined,
+                  activeIcon: Icons.calendar_month,
+                  label: '캘린더',
+                  index: 1,
+                  currentIndex: currentIndex,
+                  onTap: onTap),
               _HomeNavItem(currentIndex: currentIndex, onTap: onTap),
-              _NavItem(icon: Icons.notifications_outlined, activeIcon: Icons.notifications, label: '알림', index: 3, currentIndex: currentIndex, onTap: onTap),
-              _NavItem(icon: Icons.person_outline, activeIcon: Icons.person, label: '내정보', index: 4, currentIndex: currentIndex, onTap: onTap),
+              _NavItem(
+                  icon: Icons.notifications_outlined,
+                  activeIcon: Icons.notifications,
+                  label: '알림',
+                  index: 3,
+                  currentIndex: currentIndex,
+                  onTap: onTap),
+              _NavItem(
+                  icon: Icons.person_outline,
+                  activeIcon: Icons.person,
+                  label: '내정보',
+                  index: 4,
+                  currentIndex: currentIndex,
+                  onTap: onTap),
             ],
           ),
         ),
@@ -106,9 +135,16 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isActive ? activeIcon : icon, size: 22, color: isActive ? AppColors.primary : Colors.grey.shade400),
+            Icon(isActive ? activeIcon : icon,
+                size: 22,
+                color: isActive ? AppColors.primary : Colors.grey.shade400),
             const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: isActive ? FontWeight.w700 : FontWeight.w400, color: isActive ? AppColors.primary : Colors.grey.shade400)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                    color:
+                        isActive ? AppColors.primary : Colors.grey.shade400)),
           ],
         ),
       ),
@@ -140,7 +176,9 @@ class _HomeNavItem extends StatelessWidget {
                 color: isActive ? AppColors.primary : Colors.grey.shade100,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.home_rounded, size: 24, color: isActive ? Colors.white : Colors.grey.shade400),
+              child: Icon(Icons.home_rounded,
+                  size: 24,
+                  color: isActive ? Colors.white : Colors.grey.shade400),
             ),
           ],
         ),

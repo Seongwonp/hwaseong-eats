@@ -86,9 +86,11 @@ class MyReviewsScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Color(0xFFCCCCCC)),
+              const Icon(Icons.error_outline,
+                  size: 48, color: Color(0xFFCCCCCC)),
               const SizedBox(height: 12),
-              const Text('식사평을 불러오지 못했어요', style: TextStyle(fontSize: 14, color: Color(0xFF999999))),
+              const Text('식사평을 불러오지 못했어요',
+                  style: TextStyle(fontSize: 14, color: Color(0xFF999999))),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => ref.invalidate(_myReviewsProvider),
@@ -115,8 +117,11 @@ class MyReviewsScreen extends ConsumerWidget {
                   ),
                   const Row(
                     children: [
-                      Text('최신순', style: TextStyle(fontSize: 12, color: Color(0xFF888888))),
-                      Icon(Icons.keyboard_arrow_down, size: 16, color: Color(0xFF888888)),
+                      Text('최신순',
+                          style: TextStyle(
+                              fontSize: 12, color: Color(0xFF888888))),
+                      Icon(Icons.keyboard_arrow_down,
+                          size: 16, color: Color(0xFF888888)),
                     ],
                   ),
                 ],
@@ -132,8 +137,8 @@ class MyReviewsScreen extends ConsumerWidget {
                   : ListView.separated(
                       padding: const EdgeInsets.only(bottom: 32),
                       itemCount: reviews.length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(height: 1, thickness: 8, color: Color(0xFFF5F5F5)),
+                      separatorBuilder: (_, __) => const Divider(
+                          height: 1, thickness: 8, color: Color(0xFFF5F5F5)),
                       itemBuilder: (_, i) => _ReviewCard(review: reviews[i]),
                     ),
             ),
@@ -187,7 +192,8 @@ class _ReviewCard extends StatelessWidget {
                           if (review.isHwaseongCertified) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
@@ -207,7 +213,8 @@ class _ReviewCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         review.restaurant.address,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
+                        style: const TextStyle(
+                            fontSize: 12, color: Color(0xFF999999)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -272,7 +279,8 @@ class _ReviewCard extends StatelessWidget {
               const SizedBox(height: 10),
               Wrap(
                 spacing: 6,
-                children: review.tags.map((k) => _KeywordChip(label: k)).toList(),
+                children:
+                    review.tags.map((k) => _KeywordChip(label: k)).toList(),
               ),
             ],
           ],

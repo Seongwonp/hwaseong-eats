@@ -25,8 +25,13 @@ class FestivalScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
-        title: const Text('절기·축제 달력', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700, fontSize: 16)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        title: const Text('절기·축제 달력',
+            style: TextStyle(
+                fontFamily: 'NotoSerifKR',
+                fontWeight: FontWeight.w700,
+                fontSize: 16)),
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: context.hPad, vertical: 20),
@@ -35,21 +40,20 @@ class FestivalScreen extends StatelessWidget {
           children: [
             _InfoBanner(),
             const SizedBox(height: 24),
-
             if (upcoming.isNotEmpty) ...[
               const SectionTitle('다가오는 일정'),
               const SizedBox(height: 12),
               ...upcoming.map((e) => EventCard(
-                event: e,
-                onTap: () => context.go('/map'),
-              )),
+                    event: e,
+                    onTap: () => context.go('/map'),
+                  )),
             ],
-
             if (past.isNotEmpty) ...[
               const SizedBox(height: 24),
               const SectionTitle('지난 일정'),
               const SizedBox(height: 12),
-              ...past.map((e) => EventCard(event: e, isPast: true, onTap: () {})),
+              ...past
+                  .map((e) => EventCard(event: e, isPast: true, onTap: () {})),
             ],
           ],
         ),

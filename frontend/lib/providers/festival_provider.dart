@@ -6,11 +6,14 @@ final festivalsProvider = FutureProvider<List<SeasonalEvent>>((ref) async {
   try {
     final res = await ApiService().getEvents(upcomingOnly: true);
     final items = res.data['items'] as List<dynamic>? ?? [];
-    return items.map((e) => SeasonalEvent.fromJson(e as Map<String, dynamic>)).toList();
+    return items
+        .map((e) => SeasonalEvent.fromJson(e as Map<String, dynamic>))
+        .toList();
   } catch (_) {
     final today = DateTime.now();
     return seasonalEvents
-        .where((e) => !DateTime(e.endDate.year, e.endDate.month, e.endDate.day).isBefore(DateTime(today.year, today.month, today.day)))
+        .where((e) => !DateTime(e.endDate.year, e.endDate.month, e.endDate.day)
+            .isBefore(DateTime(today.year, today.month, today.day)))
         .toList();
   }
 });
