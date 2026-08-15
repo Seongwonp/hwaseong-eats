@@ -62,8 +62,10 @@ def create_review(
         tags=body.tags or None,
         rating=body.rating,
         comment=body.comment,
-        is_receipt_verified=body.is_receipt_verified,
-        receipt_image_url=body.receipt_image_url,
+        # 영수증 검증 결과는 클라이언트 입력을 신뢰하지 않는다.
+        # 검증 파이프라인이 생기기 전까지 모든 신규 리뷰는 미인증이다.
+        is_receipt_verified=False,
+        receipt_image_url=None,
     )
     db.add(review)
 

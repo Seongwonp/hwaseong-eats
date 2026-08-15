@@ -127,16 +127,12 @@ class ApiService {
     int? rating,
     List<String>? tags,
     String? comment,
-    bool isReceiptVerified = false,
-    String? receiptImageUrl,
   }) {
     return _dio.post(ApiConstants.reviews, data: {
       'restaurant_id': restaurantId,
       if (rating != null) 'rating': rating,
       if (tags != null) 'tags': tags,
       if (comment != null && comment.isNotEmpty) 'comment': comment,
-      'is_receipt_verified': isReceiptVerified,
-      if (receiptImageUrl != null) 'receipt_image_url': receiptImageUrl,
     });
   }
 

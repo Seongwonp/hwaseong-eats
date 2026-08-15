@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # 태그 항목이 확정 전이라 값 자체는 검증하지 않는다. 개수와 길이만 막아둔다.
 MAX_TAGS = 10
@@ -8,12 +8,12 @@ MAX_TAG_LENGTH = 20
 
 
 class ReviewCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     restaurant_id: int
     tags: list[str] = Field(default_factory=list, max_length=MAX_TAGS)
     rating: int | None = Field(None, ge=1, le=5)
     comment: str | None = Field(None, max_length=100)
-    is_receipt_verified: bool = False
-    receipt_image_url: str | None = None
 
 
 class ReviewResponse(BaseModel):

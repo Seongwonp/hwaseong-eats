@@ -112,11 +112,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.check_circle, size: 14, color: Color(0xFF888888)),
+                        Icon(Icons.info_outline, size: 14, color: Color(0xFF888888)),
                         SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            '방문 인증 완료 · 영수증 또는 주문 내역 연결됨',
+                            '영수증 인증 기능 준비 중 · 현재 리뷰는 일반 리뷰로 등록돼요',
                             style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
                           ),
                         ),
@@ -491,7 +491,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         rating: _rating,
         tags: tags,
         comment: _contentController.text.trim(),
-        isReceiptVerified: true,
       );
       final earned = (res.data['earned_points'] as num?)?.toInt() ?? 0;
       final total = (res.data['total_points'] as num?)?.toInt() ?? auth.points;
@@ -531,8 +530,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              '화성인증 식사평 등록 완료!',
+            Text(
+              earned > 0 ? '화성인증 식사평 등록 완료!' : '식사평 등록 완료!',
               style: TextStyle(
                 fontFamily: 'NotoSerifKR',
                 fontSize: 16,
@@ -540,8 +539,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              '1,000P부터 화성페이로 전환할 수 있어요',
+            Text(
+              earned > 0
+                  ? '1,000P부터 화성페이로 전환할 수 있어요'
+                  : '영수증 인증 기능이 준비되면 인증 포인트를 받을 수 있어요',
               style: TextStyle(fontSize: 12, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
