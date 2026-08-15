@@ -16,7 +16,9 @@ Future<void> main() async {
     appKey: dotenv.env['KAKAO_MAP_KEY']!,
     baseUrl: 'http://localhost',
   );
-  KakaoSdk.init(nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '');
+  final kakaoKey = dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '';
+  assert(kakaoKey.isNotEmpty, '.env에 KAKAO_NATIVE_APP_KEY가 없습니다. .env.example을 참고하세요.');
+  KakaoSdk.init(nativeAppKey: kakaoKey);
 
   // 저장된 JWT 토큰 복원
   await ApiService().initialize();
