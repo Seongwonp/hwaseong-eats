@@ -10,7 +10,6 @@ import '../screens/login_screen.dart';
 import '../screens/resident_verify_screen.dart';
 import '../screens/restaurant_detail_screen.dart';
 import '../screens/keyword_recommendations_screen.dart';
-import '../screens/new_restaurants_screen.dart';
 import '../screens/saved_restaurants_screen.dart';
 import '../screens/my_reviews_screen.dart';
 import '../screens/privacy_policy_screen.dart';
@@ -21,7 +20,9 @@ final router = GoRouter(
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/home', builder: (_, __) => const MainShell()),
     GoRoute(path: '/map', builder: (_, __) => const MainShell(initialIndex: 0)),
-    GoRoute(path: '/calendar', builder: (_, __) => const MainShell(initialIndex: 1)),
+    GoRoute(
+        path: '/calendar',
+        builder: (_, __) => const MainShell(initialIndex: 1)),
     GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
     GoRoute(
       path: '/restaurant/:id',
@@ -65,10 +66,15 @@ final router = GoRouter(
     GoRoute(path: '/signup', builder: (_, __) => const SignupScreen()),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/verify', builder: (_, __) => const ResidentVerifyScreen()),
-    GoRoute(path: '/keyword-recommendations', builder: (_, __) => const KeywordRecommendationsScreen()),
-    GoRoute(path: '/new-restaurants', builder: (_, __) => const NewRestaurantsScreen()),
-    GoRoute(path: '/saved-restaurants', builder: (_, __) => const SavedRestaurantsScreen()),
+    GoRoute(
+        path: '/keyword-recommendations',
+        builder: (_, __) => const KeywordRecommendationsScreen()),
+    GoRoute(
+        path: '/saved-restaurants',
+        builder: (_, __) => const SavedRestaurantsScreen()),
     GoRoute(path: '/my-reviews', builder: (_, __) => const MyReviewsScreen()),
-    GoRoute(path: '/privacy-policy', builder: (_, __) => const PrivacyPolicyScreen()),
+    GoRoute(
+        path: '/privacy-policy',
+        builder: (_, __) => const PrivacyPolicyScreen()),
   ],
 );

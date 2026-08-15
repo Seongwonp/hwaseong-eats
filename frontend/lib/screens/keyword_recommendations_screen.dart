@@ -1,40 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../core/theme.dart';
+
 import '../core/responsive.dart';
-import '../providers/restaurant_provider.dart';
+import '../core/theme.dart';
+import '../models/restaurant.dart';
+import '../services/api_service.dart';
 import '../widgets/home_restaurant_card.dart';
+
+final _keywordRestaurantsProvider =
+    FutureProvider.family<List<Restaurant>, String>((ref, keyword) async {
+  final response = await ApiService().getRestaurants(q: keyword, limit: 30);
+  final data = response.data as Map<String, dynamic>;
+  final items = data['items'] as List<dynamic>? ?? const [];
+  return items
+      .map((item) => Restaurant.fromJson(item as Map<String, dynamic>))
+      .toList();
+});
 
 class KeywordRecommendationsScreen extends ConsumerStatefulWidget {
   const KeywordRecommendationsScreen({super.key});
 
   @override
-  ConsumerState<KeywordRecommendationsScreen> createState() => _KeywordRecommendationsScreenState();
+  ConsumerState<KeywordRecommendationsScreen> createState() =>
+      _KeywordRecommendationsScreenState();
 }
 
-class _KeywordRecommendationsScreenState extends ConsumerState<KeywordRecommendationsScreen> {
-  String _selected = '오늘의 추천';
+class _KeywordRecommendationsScreenState
+    extends ConsumerState<KeywordRecommendationsScreen> {
+  String _selected = '화성페이';
 
   static const _keywords = [
-    ('오늘의 추천', Icons.star_rounded),
-    ('가성비', Icons.attach_money),
-    ('카공족', Icons.laptop_mac),
-    ('혼밥', Icons.restaurant),
-    ('10대 픽', Icons.people),
+    ('화성페이', Icons.payments_outlined),
+    ('국밥', Icons.ramen_dining),
+    ('갈비', Icons.restaurant),
+    ('삼계탕', Icons.soup_kitchen_outlined),
+    ('장어', Icons.set_meal_outlined),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final all = ref.watch(restaurantProvider);
-
-    // 키워드 선택에 따른 필터 (tags 기반, 목업이라 전부 표시)
-    final filtered = _selected == '오늘의 추천'
-        ? all
-        : all.where((r) => r.tags.any((t) => t.contains(_selected))).toList();
-
-    // 키워드가 없으면 전체 표시
-    final shown = filtered.isEmpty ? all : filtered;
+    final restaurants = ref.watch(_keywordRestaurantsProvider(_selected));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -46,7 +52,7 @@ class _KeywordRecommendationsScreenState extends ConsumerState<KeywordRecommenda
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          '키워드 추천',
+          '키워드로 찾기',
           style: TextStyle(
             fontFamily: 'NotoSerifKR',
             fontSize: 16,
@@ -57,81 +63,96 @@ class _KeywordRecommendationsScreenState extends ConsumerState<KeywordRecommenda
       ),
       body: Column(
         children: [
-          // 키워드 필터 칩 (가로 스크롤)
           SizedBox(
             height: 56,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.fromLTRB(context.hPad, 10, context.hPad, 10),
               itemCount: _keywords.length,
-              itemBuilder: (_, i) {
-                final (label, icon) = _keywords[i];
+              itemBuilder: (_, index) {
+                final (label, icon) = _keywords[index];
                 final selected = _selected == label;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selected = label),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: selected ? AppColors.primary : Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: selected ? AppColors.primary : const Color(0xFFDDDDDD),
-                        ),
-                        boxShadow: selected
-                            ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.2), blurRadius: 6)]
-                            : [],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(icon, size: 14, color: selected ? Colors.white : AppColors.textPrimary),
-                          const SizedBox(width: 5),
-                          Text(
-                            label,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: selected ? Colors.white : AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
+                  child: ChoiceChip(
+                    selected: selected,
+                    showCheckmark: false,
+                    avatar: Icon(
+                      icon,
+                      size: 14,
+                      color: selected ? Colors.white : AppColors.textPrimary,
                     ),
+                    label: Text(label),
+                    labelStyle: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? Colors.white : AppColors.textPrimary,
+                    ),
+                    selectedColor: AppColors.primary,
+                    backgroundColor: Colors.white,
+                    side: BorderSide(
+                      color: selected
+                          ? AppColors.primary
+                          : const Color(0xFFDDDDDD),
+                    ),
+                    onSelected: (_) => setState(() => _selected = label),
                   ),
                 );
               },
             ),
           ),
-
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
-
-          // 음식점 리스트
           Expanded(
-            child: shown.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.search_off, size: 40, color: Color(0xFFCCCCCC)),
-                        SizedBox(height: 8),
-                        Text('해당 키워드의 가게가 없어요', style: TextStyle(color: Colors.grey)),
-                      ],
+            child: restaurants.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+              error: (_, __) => _KeywordLoadError(
+                onRetry: () =>
+                    ref.invalidate(_keywordRestaurantsProvider(_selected)),
+              ),
+              data: (items) => items.isEmpty
+                  ? Center(
+                      child: Text(
+                        '$_selected 검색 결과가 없어요',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: EdgeInsets.only(top: 4, bottom: context.hp(4)),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const Divider(
+                        height: 1,
+                        color: Color(0xFFF0F0F0),
+                      ),
+                      itemBuilder: (_, index) => HomeRestaurantCard(
+                        restaurant: items[index],
+                        leadingKeywords: [_selected],
+                      ),
                     ),
-                  )
-                : ListView.separated(
-                    padding: EdgeInsets.only(top: 4, bottom: context.hp(4)),
-                    itemCount: shown.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1, color: Color(0xFFF0F0F0)),
-                    itemBuilder: (_, i) => HomeRestaurantCard(
-                      restaurant: shown[i],
-                      leadingKeywords: [_selected],
-                    ),
-                  ),
+            ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KeywordLoadError extends StatelessWidget {
+  const _KeywordLoadError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.cloud_off, size: 48, color: Color(0xFFCCCCCC)),
+          const SizedBox(height: 10),
+          const Text('음식점을 불러오지 못했어요'),
+          TextButton(onPressed: onRetry, child: const Text('다시 시도')),
         ],
       ),
     );

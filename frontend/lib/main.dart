@@ -5,6 +5,7 @@ import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import 'core/theme.dart';
 import 'core/router.dart';
 import 'providers/auth_provider.dart';
+import 'providers/favorite_provider.dart';
 import 'services/api_service.dart';
 
 Future<void> main() async {
@@ -19,9 +20,11 @@ Future<void> main() async {
   await ApiService().initialize();
 
   final container = ProviderContainer();
+  await container.read(favoriteProvider.notifier).initialize();
   await container.read(authProvider.notifier).tryAutoLogin();
 
-  runApp(UncontrolledProviderScope(container: container, child: const HwaseongEatsApp()));
+  runApp(UncontrolledProviderScope(
+      container: container, child: const HwaseongEatsApp()));
 }
 
 class HwaseongEatsApp extends StatelessWidget {
