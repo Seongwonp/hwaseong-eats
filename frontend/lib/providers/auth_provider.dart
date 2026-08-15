@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import '../services/api_service.dart';
@@ -115,19 +116,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     // 카카오톡 → 카카오 계정 순서로 폴백
+    // 단, 사용자가 명시적으로 취소한 경우(CANCELED)는 폴백하지 않는다
     OAuthToken? sdkToken;
     try {
       if (await isKakaoTalkInstalled()) {
         try {
           sdkToken = await UserApi.instance.loginWithKakaoTalk();
-        } catch (_) {
+        } on PlatformException catch (e) {
+          if (e.code == 'CANCELED') {
+            state = state.copyWith(isLoading: false, clearError: true);
+            return false;
+          }
+          // 기술적 실패(미로그인 등) → 카카오 계정으로 폴백
           sdkToken = await UserApi.instance.loginWithKakaoAccount();
         }
       } else {
         sdkToken = await UserApi.instance.loginWithKakaoAccount();
       }
     } catch (_) {
-      // 사용자 취소 또는 SDK 오류 → 조용히 실패
+      // 카카오 계정 로그인도 실패(취소 포함) → 조용히 실패
       state = state.copyWith(isLoading: false, clearError: true);
       return false;
     }

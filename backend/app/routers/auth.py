@@ -97,8 +97,12 @@ def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
     except httpx.RequestError as e:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "카카오 서버에 연결할 수 없습니다") from e
 
-    if resp.status_code != 200:
+    if resp.status_code == 401:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "카카오 인증에 실패했습니다")
+    if resp.status_code == 429:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "카카오 서버가 요청을 제한하고 있습니다")
+    if resp.status_code != 200:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "카카오 서버 오류가 발생했습니다")
 
     try:
         data = resp.json()
@@ -111,28 +115,28 @@ def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
     if user:
         return TokenResponse(access_token=create_access_token(user.id))
 
-    # 신규 가입 — 랜덤 닉네임 자동 생성 (볏섬 + 4자리 hex)
-    final_nickname = f"볏섬{secrets.token_hex(2)}"
-    attempts = 0
-    while db.scalar(select(User.id).where(User.nickname == final_nickname)):
-        final_nickname = f"볏섬{secrets.token_hex(2)}"
-        attempts += 1
-        if attempts > 10:
-            final_nickname = f"볏섬{str(kakao_id)[-6:]}"
-            break
+    # 신규 가입 — 랜덤 닉네임 자동 생성 후 commit까지 최대 5회 재시도
+    for _ in range(5):
+        nickname = f"볏섬{secrets.token_hex(4)}"
+        while db.scalar(select(User.id).where(User.nickname == nickname)):
+            nickname = f"볏섬{secrets.token_hex(4)}"
 
-    user = User(kakao_id=kakao_id, nickname=final_nickname)
-    db.add(user)
-    try:
-        db.commit()
-    except IntegrityError:
-        # 동시 요청으로 같은 kakao_id가 먼저 커밋된 경우
-        db.rollback()
-        user = db.scalar(select(User).where(User.kakao_id == kakao_id))
-        if user is None:
-            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "계정 생성에 실패했습니다")
-    db.refresh(user)
-    return TokenResponse(access_token=create_access_token(user.id))
+        user = User(kakao_id=kakao_id, nickname=nickname)
+        db.add(user)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            # 동일 kakao_id가 먼저 커밋됐으면 해당 계정으로 로그인
+            existing = db.scalar(select(User).where(User.kakao_id == kakao_id))
+            if existing:
+                return TokenResponse(access_token=create_access_token(existing.id))
+            # 닉네임 충돌이면 다음 루프에서 새 닉네임으로 재시도
+            continue
+        db.refresh(user)
+        return TokenResponse(access_token=create_access_token(user.id))
+
+    raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "잠시 후 다시 시도해 주세요")
 
 
 @router.get("/me", response_model=UserResponse)
@@ -147,13 +151,14 @@ def update_me(
     db: Session = Depends(get_db),
 ):
     """닉네임 변경. 이미 사용 중인 닉네임이면 409."""
-    exists = db.scalar(
-        select(User.id).where(User.nickname == body.nickname, User.id != user.id)
-    )
-    if exists:
-        raise HTTPException(status.HTTP_409_CONFLICT, "이미 사용 중인 닉네임입니다")
+    if body.nickname == user.nickname:
+        return user
     user.nickname = body.nickname
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "이미 사용 중인 닉네임입니다")
     db.refresh(user)
     return user
 

@@ -38,6 +38,14 @@ class TokenResponse(BaseModel):
 class NicknameUpdateRequest(BaseModel):
     nickname: str = Field(min_length=2, max_length=10)
 
+    @field_validator("nickname")
+    @classmethod
+    def normalize_nickname(cls, v: str) -> str:
+        v = v.strip()
+        if not 2 <= len(v) <= 10:
+            raise ValueError("닉네임은 2~10자여야 합니다")
+        return v
+
 
 class UserResponse(BaseModel):
     id: int
