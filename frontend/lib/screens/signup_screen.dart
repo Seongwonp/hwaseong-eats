@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
+import 'login_screen.dart' show _KakaoLoginButton;
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -39,6 +40,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           nickname: _nicknameCtrl.text.trim(),
         );
     if (ok && mounted) context.go('/verify');
+  }
+
+  Future<void> _loginWithKakao() async {
+    final ok = await ref.read(authProvider.notifier).loginWithKakao();
+    if (ok && mounted) context.go('/home');
   }
 
   @override
@@ -150,6 +156,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             fontSize: 15)),
               ),
             ),
+            const SizedBox(height: 20),
+            const Row(children: [
+              Expanded(child: Divider()),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text('또는', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+              ),
+              Expanded(child: Divider()),
+            ]),
+            const SizedBox(height: 16),
+            _KakaoLoginButton(onTap: _loginWithKakao, loading: auth.isLoading),
             const SizedBox(height: 12),
             Center(
               child: TextButton(

@@ -26,6 +26,10 @@ class LoginRequest(BaseModel):
     _norm = field_validator("email")(lambda cls, v: _normalize_email(v))
 
 
+class KakaoLoginRequest(BaseModel):
+    access_token: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -33,7 +37,7 @@ class TokenResponse(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
-    email: EmailStr
+    email: str | None  # 카카오 전용 계정은 이메일이 없을 수 있다
     nickname: str
     is_resident_verified: bool
     resident_expires_at: datetime | None

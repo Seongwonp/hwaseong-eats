@@ -7,14 +7,16 @@ from app.database import Base
 
 
 class User(Base):
-    """자체 계정 회원."""
+    """자체 계정 + 카카오 소셜 계정 회원."""
 
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
 
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    # 카카오 로그인 사용자는 kakao_id만 있고 email/password_hash는 None
+    kakao_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     nickname: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
 
     # 화성주민 인증은 6개월 유효라 만료 시점을 따로 들고 있는다.

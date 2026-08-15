@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'core/theme.dart';
 import 'core/router.dart';
 import 'providers/auth_provider.dart';
@@ -15,6 +16,7 @@ Future<void> main() async {
     appKey: dotenv.env['KAKAO_MAP_KEY']!,
     baseUrl: 'http://localhost',
   );
+  KakaoSdk.init(nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '');
 
   // 저장된 JWT 토큰 복원
   await ApiService().initialize();

@@ -34,6 +34,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (ok && mounted) context.go('/home');
   }
 
+  Future<void> _loginWithKakao() async {
+    final ok = await ref.read(authProvider.notifier).loginWithKakao();
+    if (ok && mounted) context.go('/home');
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -112,7 +117,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             fontSize: 15)),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
+            const Row(children: [
+              Expanded(child: Divider()),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text('또는', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+              ),
+              Expanded(child: Divider()),
+            ]),
+            const SizedBox(height: 16),
+            _KakaoLoginButton(onTap: _loginWithKakao, loading: auth.isLoading),
+            const SizedBox(height: 20),
             Center(
               child: TextButton(
                 onPressed: () => context.push('/signup'),
@@ -159,6 +175,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: AppColors.primary)),
+      ),
+    );
+  }
+}
+
+class _KakaoLoginButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool loading;
+
+  const _KakaoLoginButton({required this.onTap, this.loading = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: loading ? null : onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFEE500),
+          foregroundColor: const Color(0xFF191919),
+          disabledBackgroundColor: const Color(0xFFFEE500).withValues(alpha: 0.5),
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              alignment: Alignment.center,
+              child: const Text('K',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF191919))),
+            ),
+            const SizedBox(width: 8),
+            const Text('카카오로 계속하기',
+                style: TextStyle(
+                    fontFamily: 'NotoSerifKR',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Color(0xFF191919))),
+          ],
+        ),
       ),
     );
   }

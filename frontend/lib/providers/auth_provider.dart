@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import '../services/api_service.dart';
 
 class AuthState {
@@ -93,6 +94,44 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _api.saveToken(token);
 
       // 사용자 정보 조회
+      final meRes = await _api.getMe();
+      final user = meRes.data;
+      state = state.copyWith(
+        isLoggedIn: true,
+        isLoading: false,
+        nickname: user['nickname'] as String?,
+        points: (user['points'] as num?)?.toInt() ?? 0,
+        isVerified: user['is_resident_verified'] as bool? ?? false,
+        expiresAt: _formatExpiry(user['resident_expires_at'] as String?),
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _parseError(e));
+      return false;
+    }
+  }
+
+  Future<bool> loginWithKakao() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      // 카카오톡 설치 여부에 따라 로그인 방식 분기
+      OAuthToken token;
+      try {
+        if (await isKakaoTalkInstalled()) {
+          token = await UserApi.instance.loginWithKakaoTalk();
+        } else {
+          token = await UserApi.instance.loginWithKakaoAccount();
+        }
+      } catch (_) {
+        // 사용자가 취소하거나 카카오 SDK 오류 → 로딩만 해제, 에러 메시지 없음
+        state = state.copyWith(isLoading: false, clearError: true);
+        return false;
+      }
+
+      final res = await _api.loginWithKakao(token.accessToken);
+      final jwtToken = res.data['access_token'] as String;
+      await _api.saveToken(jwtToken);
+
       final meRes = await _api.getMe();
       final user = meRes.data;
       state = state.copyWith(

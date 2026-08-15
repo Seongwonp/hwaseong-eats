@@ -78,6 +78,12 @@ class ApiService {
     return _dio.delete(ApiConstants.me);
   }
 
+  Future<Response> loginWithKakao(String kakaoAccessToken) {
+    return _dio.post(ApiConstants.kakaoLogin, data: {
+      'access_token': kakaoAccessToken,
+    });
+  }
+
   // ── 음식점 ────────────────────────────────────────────────
 
   Future<Response> getRestaurants({

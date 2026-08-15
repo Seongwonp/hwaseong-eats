@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -15,7 +16,7 @@ from app.core.security import (
 )
 from app.database import get_db
 from app.models import PointHistory, User
-from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse, UserResponse
+from app.schemas.auth import KakaoLoginRequest, LoginRequest, SignupRequest, TokenResponse, UserResponse
 from app.schemas.point import (
     ExchangeRequest,
     ExchangeResponse,
@@ -70,11 +71,67 @@ def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
 
     # 계정이 없는 것과 비밀번호가 틀린 것을 구분해서 알려주지 않는다.
     # 구분되면 어떤 이메일이 가입돼 있는지 훑을 수 있다.
-    if user is None or not verify_password(body.password, user.password_hash):
+    # password_hash가 None이면 카카오 전용 계정이므로 같은 오류로 처리한다.
+    if user is None or user.password_hash is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다"
         )
 
+    return TokenResponse(access_token=create_access_token(user.id))
+
+
+@router.post("/kakao", response_model=TokenResponse)
+def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
+    """카카오 소셜 로그인.
+
+    앱에서 받은 카카오 액세스 토큰으로 카카오 사용자 정보를 조회한 뒤,
+    기존 계정이 있으면 로그인, 없으면 신규 계정을 생성한다.
+    """
+    try:
+        resp = httpx.get(
+            "https://kapi.kakao.com/v2/user/me",
+            headers={"Authorization": f"Bearer {body.access_token}"},
+            timeout=10.0,
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "카카오 서버에 연결할 수 없습니다") from e
+
+    if resp.status_code != 200:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "카카오 인증에 실패했습니다")
+
+    data = resp.json()
+    kakao_id = int(data["id"])
+    nickname_raw = (
+        data.get("kakao_account", {}).get("profile", {}).get("nickname") or ""
+    ).strip()
+
+    # 기존 카카오 계정이면 바로 토큰 발급
+    user = db.scalar(select(User).where(User.kakao_id == kakao_id))
+    if user:
+        return TokenResponse(access_token=create_access_token(user.id))
+
+    # 신규 가입 — 닉네임 중복이면 숫자 suffix 붙임
+    base = nickname_raw[:10] if len(nickname_raw) >= 2 else f"볏섬{kakao_id % 10000:04d}"
+    final_nickname = base
+    suffix = 1
+    while db.scalar(select(User.id).where(User.nickname == final_nickname)):
+        final_nickname = f"{base[:9]}{suffix}"
+        suffix += 1
+        if suffix > 99:
+            final_nickname = str(kakao_id)[-10:]
+            break
+
+    user = User(kakao_id=kakao_id, nickname=final_nickname)
+    db.add(user)
+    try:
+        db.commit()
+    except IntegrityError:
+        # 동시 요청으로 같은 kakao_id가 먼저 커밋된 경우
+        db.rollback()
+        user = db.scalar(select(User).where(User.kakao_id == kakao_id))
+        if user is None:
+            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "계정 생성에 실패했습니다")
+    db.refresh(user)
     return TokenResponse(access_token=create_access_token(user.id))
 
 

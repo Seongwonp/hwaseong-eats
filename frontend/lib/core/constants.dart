@@ -12,6 +12,7 @@ class ApiConstants {
   // 인증
   static const signup = '/auth/signup';
   static const login = '/auth/login';
+  static const kakaoLogin = '/auth/kakao';
   static const me = '/auth/me';
   static const verifyResident = '/auth/verify';
   static const myPoints = '/auth/me/points';
