@@ -1,4 +1,4 @@
-"""식사평 등록·조회·삭제와 포인트 적립 테스트."""
+"""식사평 API 계약과 클라이언트 인증 위조 방지 테스트."""
 
 import uuid
 
@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 
-from app.core.constants import REVIEW_POINTS, VISIBLE_GEOCODE_STATUSES
+from app.core.constants import VISIBLE_GEOCODE_STATUSES
 from app.database import SessionLocal
 from app.main import app
 from app.models import Restaurant
@@ -17,8 +17,8 @@ def client():
     try:
         with SessionLocal() as db:
             db.execute(text("SELECT 1"))
-    except Exception as e:
-        pytest.skip(f"DB 연결 불가: {e}")
+    except Exception as exc:
+        pytest.skip(f"DB 연결 불가: {exc}")
     app.state.limiter.enabled = False
     yield TestClient(app)
     app.state.limiter.enabled = True
@@ -27,212 +27,92 @@ def client():
 @pytest.fixture(scope="module")
 def restaurant_ids():
     with SessionLocal() as db:
-        ids = db.scalars(
-            select(Restaurant.id)
-            .where(Restaurant.geocode_status.in_(VISIBLE_GEOCODE_STATUSES))
-            .limit(3)
-        ).all()
-    return list(ids)
+        return list(db.scalars(select(Restaurant.id).where(
+            Restaurant.geocode_status.in_(VISIBLE_GEOCODE_STATUSES)
+        ).limit(3)).all())
 
 
-def _signup(client):
+@pytest.fixture
+def user(client):
     tag = uuid.uuid4().hex[:8]
-    email = f"rv_{tag}@example.com"
-    res = client.post(
-        "/auth/signup",
-        json={"email": email, "password": "hwaseong1234", "nickname": f"리뷰{tag[:4]}"},
-    )
-    assert res.status_code == 201, res.text
-    return email, {"Authorization": f"Bearer {res.json()['access_token']}"}
-
-
-@pytest.fixture
-def plain_user(client):
-    """주민인증을 하지 않은 계정."""
-    email, headers = _signup(client)
+    email = f"review_{tag}@example.com"
+    response = client.post("/auth/signup", json={
+        "email": email, "password": "hwaseong1234", "nickname": f"리뷰{tag[:4]}"
+    })
+    headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
     yield headers
     with SessionLocal() as db:
-        db.execute(text("DELETE FROM users WHERE email = :em"), {"em": email})
+        db.execute(text("DELETE FROM users WHERE email=:email"), {"email": email})
         db.commit()
 
 
-@pytest.fixture
-def verified_user(client):
-    """주민인증까지 마친 계정."""
-    email, headers = _signup(client)
-    assert client.post("/auth/verify", headers=headers).status_code == 200
-    yield headers
-    with SessionLocal() as db:
-        db.execute(text("DELETE FROM users WHERE email = :em"), {"em": email})
-        db.commit()
+def test_클라이언트는_영수증_인증을_지정할_수_없다(client, user, restaurant_ids):
+    response = client.post("/reviews", headers=user, json={
+        "restaurant_id": restaurant_ids[0], "is_receipt_verified": True
+    })
+    assert response.status_code == 422
 
 
-class TestCreate:
-    def test_화성인증_리뷰는_500P_적립(self, client, verified_user, restaurant_ids):
-        res = client.post(
-            "/reviews",
-            headers=verified_user,
-            json={
-                "restaurant_id": restaurant_ids[0],
-                "tags": ["양 많음", "가성비"],
-                "rating": 5,
-                "comment": "국물이 진하다",
-                "is_receipt_verified": True,
-            },
-        )
-        assert res.status_code == 201, res.text
-        body = res.json()
-        assert body["earned_points"] == REVIEW_POINTS
-        assert body["total_points"] == REVIEW_POINTS
-        assert body["review"]["is_hwaseong_certified"] is True
-
-    def test_영수증_인증이_없으면_포인트가_없다(self, client, verified_user, restaurant_ids):
-        res = client.post(
-            "/reviews",
-            headers=verified_user,
-            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": False},
-        )
-        assert res.json()["earned_points"] == 0
-        assert res.json()["review"]["is_hwaseong_certified"] is False
-
-    def test_주민인증이_없으면_포인트가_없다(self, client, plain_user, restaurant_ids):
-        res = client.post(
-            "/reviews",
-            headers=plain_user,
-            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": True},
-        )
-        assert res.status_code == 201
-        assert res.json()["earned_points"] == 0
-
-    def test_같은_가게에_두_번은_409(self, client, verified_user, restaurant_ids):
-        payload = {"restaurant_id": restaurant_ids[1], "is_receipt_verified": True}
-        assert client.post("/reviews", headers=verified_user, json=payload).status_code == 201
-        assert client.post("/reviews", headers=verified_user, json=payload).status_code == 409
-
-    def test_중복_시도로_포인트가_늘지_않는다(self, client, verified_user, restaurant_ids):
-        payload = {"restaurant_id": restaurant_ids[1], "is_receipt_verified": True}
-        client.post("/reviews", headers=verified_user, json=payload)
-        client.post("/reviews", headers=verified_user, json=payload)
-        me = client.get("/auth/me", headers=verified_user).json()
-        assert me["points"] == REVIEW_POINTS
-
-    def test_없는_음식점은_404(self, client, verified_user):
-        res = client.post(
-            "/reviews", headers=verified_user, json={"restaurant_id": 999999999}
-        )
-        assert res.status_code == 404
-
-    def test_로그인_없이는_401(self, client, restaurant_ids):
-        res = client.post("/reviews", json={"restaurant_id": restaurant_ids[0]})
-        assert res.status_code == 401
-
-    def test_별점_범위를_벗어나면_422(self, client, verified_user, restaurant_ids):
-        res = client.post(
-            "/reviews",
-            headers=verified_user,
-            json={"restaurant_id": restaurant_ids[0], "rating": 6},
-        )
-        assert res.status_code == 422
-
-    def test_태그가_너무_많으면_422(self, client, verified_user, restaurant_ids):
-        res = client.post(
-            "/reviews",
-            headers=verified_user,
-            json={"restaurant_id": restaurant_ids[0], "tags": [f"t{i}" for i in range(11)]},
-        )
-        assert res.status_code == 422
+def test_일반_리뷰는_0P이며_인증_배지가_없다(client, user, restaurant_ids):
+    response = client.post("/reviews", headers=user, json={
+        "restaurant_id": restaurant_ids[0], "rating": 5, "comment": "좋아요"
+    })
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["earned_points"] == 0
+    assert body["total_points"] == 0
+    assert body["review"]["is_receipt_verified"] is False
+    assert body["review"]["is_hwaseong_certified"] is False
 
 
-class TestList:
-    def test_음식점별_조회(self, client, verified_user, restaurant_ids):
-        rid = restaurant_ids[2]
-        client.post(
-            "/reviews",
-            headers=verified_user,
-            json={"restaurant_id": rid, "is_receipt_verified": True},
-        )
-        body = client.get("/reviews", params={"restaurant_id": rid}).json()
-        assert body["total"] >= 1
-        assert all(x["restaurant_id"] == rid for x in body["items"])
-
-    def test_닉네임이_함께_나온다(self, client, verified_user, restaurant_ids):
-        client.post(
-            "/reviews",
-            headers=verified_user,
-            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": True},
-        )
-        body = client.get(
-            "/reviews", params={"restaurant_id": restaurant_ids[0]}
-        ).json()
-        assert body["items"][0]["nickname"]
-
-    def test_내_리뷰_조회(self, client, verified_user, restaurant_ids):
-        client.post(
-            "/reviews",
-            headers=verified_user,
-            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": True},
-        )
-        body = client.get("/reviews/me", headers=verified_user).json()
-        assert body["total"] == 1
-
-    def test_내_리뷰는_로그인이_필요하다(self, client):
-        assert client.get("/reviews/me").status_code == 401
+def test_같은_가게에_두_번은_409(client, user, restaurant_ids):
+    payload = {"restaurant_id": restaurant_ids[1]}
+    assert client.post("/reviews", headers=user, json=payload).status_code == 201
+    assert client.post("/reviews", headers=user, json=payload).status_code == 409
 
 
-class TestDelete:
-    def test_삭제하면_포인트가_회수된다(self, client, verified_user, restaurant_ids):
-        created = client.post(
-            "/reviews",
-            headers=verified_user,
-            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": True},
-        ).json()
-        assert created["total_points"] == REVIEW_POINTS
-
-        rid = created["review"]["id"]
-        assert client.delete(f"/reviews/{rid}", headers=verified_user).status_code == 204
-
-        me = client.get("/auth/me", headers=verified_user).json()
-        assert me["points"] == 0
-
-    def test_남의_리뷰는_지울_수_없다(self, client, verified_user, plain_user, restaurant_ids):
-        created = client.post(
-            "/reviews",
-            headers=verified_user,
-            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": True},
-        ).json()
-        rid = created["review"]["id"]
-        assert client.delete(f"/reviews/{rid}", headers=plain_user).status_code == 404
+def test_로그인과_입력값을_검증한다(client, user, restaurant_ids):
+    assert client.post("/reviews", json={"restaurant_id": restaurant_ids[0]}).status_code == 401
+    assert client.post("/reviews", headers=user, json={
+        "restaurant_id": restaurant_ids[0], "rating": 6
+    }).status_code == 422
+    assert client.post("/reviews", headers=user, json={"restaurant_id": 999999999}).status_code == 404
+    assert client.post("/reviews", headers=user, json={
+        "restaurant_id": restaurant_ids[0], "tags": [f"t{i}" for i in range(11)]
+    }).status_code == 422
 
 
-class TestRefund:
-    def test_적립_안_된_리뷰를_인증_후_지워도_터지지_않는다(
-        self, client, plain_user, restaurant_ids
-    ):
-        """삭제 시점에 조건을 다시 따지면, 적립한 적 없는 포인트를 깎으려 들어 500 이 났다."""
-        created = client.post(
-            "/reviews",
-            headers=plain_user,
-            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": True},
-        ).json()
-        assert created["earned_points"] == 0
+def test_목록_내리뷰_삭제(client, user, restaurant_ids):
+    created = client.post("/reviews", headers=user, json={
+        "restaurant_id": restaurant_ids[2], "tags": ["가성비"]
+    }).json()["review"]
+    listing = client.get("/reviews", params={"restaurant_id": restaurant_ids[2]}).json()
+    assert listing["total"] >= 1
+    assert all(item["restaurant_id"] == restaurant_ids[2] for item in listing["items"])
+    assert listing["items"][0]["nickname"]
+    assert client.get("/reviews/me", headers=user).json()["total"] == 1
+    assert client.delete(f"/reviews/{created['id']}", headers=user).status_code == 204
+    assert client.get("/auth/me", headers=user).json()["points"] == 0
 
-        # 작성 뒤에 주민인증을 마친다
-        assert client.post("/auth/verify", headers=plain_user).status_code == 200
 
-        res = client.delete(f"/reviews/{created['review']['id']}", headers=plain_user)
-        assert res.status_code == 204
+def test_내리뷰는_로그인이_필요하다(client):
+    assert client.get("/reviews/me").status_code == 401
 
-        me = client.get("/auth/me", headers=plain_user).json()
-        assert me["points"] == 0
 
-    def test_적립된_만큼만_회수한다(self, client, verified_user, restaurant_ids):
-        created = client.post(
-            "/reviews",
-            headers=verified_user,
-            json={"restaurant_id": restaurant_ids[0], "is_receipt_verified": True},
-        ).json()
-        assert created["earned_points"] == REVIEW_POINTS
+def test_남의_리뷰는_삭제할_수_없다(client, user, restaurant_ids):
+    created = client.post("/reviews", headers=user, json={
+        "restaurant_id": restaurant_ids[0]
+    }).json()["review"]
 
-        client.delete(f"/reviews/{created['review']['id']}", headers=verified_user)
-        me = client.get("/auth/me", headers=verified_user).json()
-        assert me["points"] == 0
+    tag = uuid.uuid4().hex[:8]
+    email = f"other_{tag}@example.com"
+    signup = client.post("/auth/signup", json={
+        "email": email, "password": "hwaseong1234", "nickname": f"타인{tag[:4]}"
+    })
+    other = {"Authorization": f"Bearer {signup.json()['access_token']}"}
+    try:
+        assert client.delete(f"/reviews/{created['id']}", headers=other).status_code == 404
+    finally:
+        with SessionLocal() as db:
+            db.execute(text("DELETE FROM users WHERE email=:email"), {"email": email})
+            db.commit()
