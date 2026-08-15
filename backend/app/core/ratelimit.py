@@ -20,3 +20,6 @@ SIGNUP_LIMIT = "3/minute"
 
 # 포인트 전환은 잔액을 실제로 깎는다. 실수든 악의든 연타를 막는다.
 EXCHANGE_LIMIT = "10/minute"
+
+# 닉네임 변경 — DB 쓰기 연타 방지
+NICKNAME_LIMIT = "10/minute"

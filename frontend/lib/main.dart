@@ -20,10 +20,13 @@ Future<void> main() async {
   assert(kakaoKey.isNotEmpty, '.env에 KAKAO_NATIVE_APP_KEY가 없습니다. .env.example을 참고하세요.');
   KakaoSdk.init(nativeAppKey: kakaoKey);
 
-  // 저장된 JWT 토큰 복원
-  await ApiService().initialize();
-
   final container = ProviderContainer();
+
+  // 저장된 JWT 토큰 복원 + 401 시 자동 로그아웃 연결
+  await ApiService().initialize();
+  ApiService().onUnauthorized = () =>
+      container.read(authProvider.notifier).logout();
+
   await container.read(favoriteProvider.notifier).initialize();
   await container.read(authProvider.notifier).tryAutoLogin();
 

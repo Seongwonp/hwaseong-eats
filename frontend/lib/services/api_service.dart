@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/constants.dart';
 
 const _tokenKey = 'auth_token';
@@ -15,31 +15,52 @@ class ApiService {
     headers: {'Content-Type': 'application/json'},
   ));
 
-  // 앱 시작 시 저장된 토큰 로드 + baseUrl 세팅
+  final _storage = const FlutterSecureStorage();
+
+  // 토큰 만료(401) 시 호출할 콜백 — main.dart에서 logout()으로 연결
+  void Function()? onUnauthorized;
+
+  // 앱 시작 시 저장된 토큰 로드 + baseUrl 세팅 + 401 인터셉터 등록
   Future<void> initialize() async {
     _dio.options.baseUrl = ApiConstants.baseUrl;
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_tokenKey);
+
+    _dio.interceptors.add(InterceptorsWrapper(
+      onError: (error, handler) {
+        if (error.response?.statusCode == 401) {
+          // 로그인/카카오 엔드포인트의 인증 실패는 인터셉터에서 제외
+          final path = error.requestOptions.path;
+          final isLoginEndpoint =
+              path == ApiConstants.login || path == ApiConstants.kakaoLogin;
+          if (!isLoginEndpoint) {
+            onUnauthorized?.call();
+          }
+        }
+        handler.next(error);
+      },
+    ));
+
+    final token = await _storage.read(key: _tokenKey);
     if (token != null) _setAuthHeader(token);
   }
 
   // 로그인/회원가입 후 토큰 저장
   Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    await _storage.write(key: _tokenKey, value: token);
     _setAuthHeader(token);
   }
 
   // 로그아웃 시 토큰 제거
   Future<void> clearToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    _dio.options.headers.remove('Authorization');
+    try {
+      await _storage.delete(key: _tokenKey);
+    } finally {
+      _dio.options.headers.remove('Authorization');
+    }
   }
 
   Future<bool> hasToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey(_tokenKey);
+    final token = await _storage.read(key: _tokenKey);
+    return token != null;
   }
 
   void _setAuthHeader(String token) {

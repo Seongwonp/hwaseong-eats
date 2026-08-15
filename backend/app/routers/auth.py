@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
-from app.core.ratelimit import EXCHANGE_LIMIT, LOGIN_LIMIT, SIGNUP_LIMIT, limiter
+from app.core.ratelimit import EXCHANGE_LIMIT, LOGIN_LIMIT, NICKNAME_LIMIT, SIGNUP_LIMIT, limiter
 from app.core.security import (
     PasswordTooLongError,
     create_access_token,
@@ -82,7 +82,8 @@ def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/kakao", response_model=TokenResponse)
-def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
+@limiter.limit(LOGIN_LIMIT)
+def kakao_login(request: Request, body: KakaoLoginRequest, db: Session = Depends(get_db)):
     """카카오 소셜 로그인.
 
     앱에서 받은 카카오 액세스 토큰으로 카카오 사용자 정보를 조회한 뒤,
@@ -145,7 +146,9 @@ def me(user: User = Depends(get_current_user)):
 
 
 @router.patch("/me", response_model=UserResponse)
+@limiter.limit(NICKNAME_LIMIT)
 def update_me(
+    request: Request,
     body: NicknameUpdateRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
