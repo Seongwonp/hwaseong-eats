@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../core/responsive.dart';
+import '../models/restaurant.dart';
 import '../models/seasonal_event.dart';
 import '../providers/auth_provider.dart';
 import '../providers/festival_provider.dart';
+import '../providers/home_restaurant_provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../widgets/home_restaurant_card.dart';
 
@@ -15,12 +17,10 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
-    final restaurants = ref.watch(restaurantProvider);
+    final konapayRestaurants = ref.watch(homeKonapayRestaurantsProvider);
+    final mobeomRestaurants = ref.watch(homeMobeomRestaurantsProvider);
     final todayEventAsync = ref.watch(todayEventProvider);
     final festivalsAsync = ref.watch(festivalsProvider);
-
-    final topTwo = restaurants.take(2).toList();
-    final newTwo = newRestaurants.take(2).toList();
 
     final SeasonalEvent? upcomingEvent =
         festivalsAsync.valueOrNull?.isNotEmpty == true
@@ -39,7 +39,6 @@ class HomeScreen extends ConsumerWidget {
                 child: auth.isLoggedIn
                     ? _LoggedInHeader(
                         nickname: auth.nickname ?? '사용자',
-                        district: '효행구 봉담읍',
                       )
                     : _LoggedOutHeader(),
               ),
@@ -47,7 +46,7 @@ class HomeScreen extends ConsumerWidget {
 
             const SliverToBoxAdapter(child: SizedBox(height: 28)),
 
-            // ── 키워드 추천 ────────────────────────────────
+            // ── 화성페이 가맹점 ────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: context.hPad),
@@ -58,7 +57,7 @@ class HomeScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          '키워드 추천',
+                          '화성페이 가맹점',
                           style: TextStyle(
                             fontFamily: 'NotoSerifKR',
                             fontSize: 16,
@@ -67,40 +66,32 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => context.push('/keyword-recommendations'),
+                          onTap: () {
+                            ref.read(filterProvider.notifier).state =
+                                const FilterState(
+                              isKonapay: true,
+                            );
+                            context.push('/map');
+                          },
                           child: Text(
-                            '더 많은 키워드 보기 >',
+                            '지도에서 보기 >',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textPrimary.withValues(alpha: 0.4),
+                              color:
+                                  AppColors.textPrimary.withValues(alpha: 0.4),
                             ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    _WhiteCard(
-                      child: topTwo.isEmpty
-                          ? const Padding(
-                              padding: EdgeInsets.all(24),
-                              child: Center(
-                                child: Text('추천 가게가 없어요',
-                                    style: TextStyle(color: Colors.grey)),
-                              ),
-                            )
-                          : ListView.separated(
-                              physics: const NeverScrollableScrollPhysics(),
-                              shrinkWrap: true,
-                              padding: EdgeInsets.zero,
-                              itemCount: topTwo.length,
-                              separatorBuilder: (_, __) => const Divider(
-                                  height: 1,
-                                  indent: 20,
-                                  endIndent: 20,
-                                  color: Color(0xFFF0F0F0)),
-                              itemBuilder: (_, i) =>
-                                  HomeRestaurantCard(restaurant: topTwo[i]),
-                            ),
+                    _RestaurantSectionCard(
+                      restaurants: konapayRestaurants,
+                      emptyMessage: '표시할 화성페이 가맹점이 없어요.',
+                      leadingKeyword: '화성페이',
+                      onRetry: () => ref.invalidate(
+                        homeKonapayRestaurantsProvider,
+                      ),
                     ),
                   ],
                 ),
@@ -109,61 +100,37 @@ class HomeScreen extends ConsumerWidget {
 
             const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-            // ── 우리집 근처 새로 오픈 (로그인 상태만) ─────
-            if (auth.isLoggedIn && newTwo.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: context.hPad),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            '우리집 근처 새로 오픈',
-                            style: TextStyle(
-                              fontFamily: 'NotoSerifKR',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => context.push('/new-restaurants'),
-                            child: Text(
-                              '더보기 >',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textPrimary.withValues(alpha: 0.4),
-                              ),
-                            ),
-                          ),
-                        ],
+            // ── 모범음식점 ─────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: context.hPad),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '화성시 모범음식점',
+                      style: TextStyle(
+                        fontFamily: 'NotoSerifKR',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
-                      const SizedBox(height: 10),
-                      _WhiteCard(
-                        child: ListView.separated(
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          padding: EdgeInsets.zero,
-                          itemCount: newTwo.length,
-                          separatorBuilder: (_, __) => const Divider(
-                              height: 1,
-                              indent: 20,
-                              endIndent: 20,
-                              color: Color(0xFFF0F0F0)),
-                          itemBuilder: (_, i) =>
-                              _NewOpenCard(restaurant: newTwo[i]),
-                        ),
+                    ),
+                    const SizedBox(height: 10),
+                    _RestaurantSectionCard(
+                      restaurants: mobeomRestaurants,
+                      emptyMessage: '표시할 모범음식점이 없어요.',
+                      leadingKeyword: '모범음식점',
+                      onRetry: () => ref.invalidate(
+                        homeMobeomRestaurantsProvider,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+            ),
 
-            if (auth.isLoggedIn && newTwo.isNotEmpty)
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+            const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
             // ── 화성 먹거리 행사 ───────────────────────────
             SliverToBoxAdapter(
@@ -190,7 +157,8 @@ class HomeScreen extends ConsumerWidget {
                             '전체 보기 >',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textPrimary.withValues(alpha: 0.4),
+                              color:
+                                  AppColors.textPrimary.withValues(alpha: 0.4),
                             ),
                           ),
                         ),
@@ -208,8 +176,8 @@ class HomeScreen extends ConsumerWidget {
                             ),
                             child: const Center(
                               child: Text('현재 진행 중인 행사가 없어요',
-                                  style:
-                                      TextStyle(fontSize: 14, color: Colors.grey)),
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.grey)),
                             ),
                           ),
                   ],
@@ -271,8 +239,7 @@ class _LoggedOutHeader extends StatelessWidget {
 
 class _LoggedInHeader extends StatelessWidget {
   final String nickname;
-  final String district;
-  const _LoggedInHeader({required this.nickname, required this.district});
+  const _LoggedInHeader({required this.nickname});
 
   @override
   Widget build(BuildContext context) {
@@ -287,114 +254,16 @@ class _LoggedInHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontFamily: 'NotoSerifKR',
-              fontSize: context.fs(22),
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-            children: [
-              TextSpan(text: '${nickname}님'),
-              TextSpan(
-                text: ' • $district',
-                style: TextStyle(
-                  fontSize: context.fs(15),
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textPrimary.withValues(alpha: 0.45),
-                ),
-              ),
-            ],
+        Text(
+          '$nickname님',
+          style: TextStyle(
+            fontFamily: 'NotoSerifKR',
+            fontSize: context.fs(22),
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
           ),
         ),
       ],
-    );
-  }
-}
-
-// ─── 새로 오픈 컴팩트 카드 ────────────────────────────────────────────
-
-class _NewOpenCard extends StatelessWidget {
-  final restaurant;
-  const _NewOpenCard({required this.restaurant});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => context.push('/restaurant/${restaurant.id}', extra: restaurant),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: context.hPad, vertical: 14),
-        child: Row(
-          children: [
-            // 썸네일
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 72, height: 72,
-                color: AppColors.primary.withValues(alpha: 0.07),
-                child: Icon(Icons.restaurant,
-                    color: AppColors.primary.withValues(alpha: 0.3), size: 28),
-              ),
-            ),
-            const SizedBox(width: 14),
-            // 정보
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          restaurant.name,
-                          style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text('NEW',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${restaurant.category ?? '음식점'}  |  최근 오픈',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.primary),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on,
-                          size: 12, color: Color(0xFFBBBBBB)),
-                      const SizedBox(width: 2),
-                      const Text('근처',
-                          style: TextStyle(
-                              fontSize: 12, color: Color(0xFF999999))),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -416,7 +285,8 @@ class _ReviewBanner extends StatelessWidget {
         children: [
           // 아이콘
           Container(
-            width: 52, height: 52,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.13),
               shape: BoxShape.circle,
@@ -454,14 +324,12 @@ class _ReviewBanner extends StatelessWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               elevation: 0,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('작성하기',
-                style:
-                    TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -494,6 +362,68 @@ class _WhiteCard extends StatelessWidget {
   }
 }
 
+class _RestaurantSectionCard extends StatelessWidget {
+  final AsyncValue<List<Restaurant>> restaurants;
+  final String emptyMessage;
+  final String leadingKeyword;
+  final VoidCallback onRetry;
+
+  const _RestaurantSectionCard({
+    required this.restaurants,
+    required this.emptyMessage,
+    required this.leadingKeyword,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _WhiteCard(
+      child: restaurants.when(
+        loading: () => const SizedBox(
+          height: 120,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (_, __) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            children: [
+              const Text('음식점 정보를 불러오지 못했어요.'),
+              const SizedBox(height: 6),
+              TextButton(onPressed: onRetry, child: const Text('다시 시도')),
+            ],
+          ),
+        ),
+        data: (items) => items.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Text(
+                    emptyMessage,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            : ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const Divider(
+                  height: 1,
+                  indent: 20,
+                  endIndent: 20,
+                  color: Color(0xFFF0F0F0),
+                ),
+                itemBuilder: (_, index) => HomeRestaurantCard(
+                  restaurant: items[index],
+                  leadingKeywords: [leadingKeyword],
+                ),
+              ),
+      ),
+    );
+  }
+}
+
 // ─── 행사 배너 ────────────────────────────────────────────────────────
 
 class _EventBanner extends StatelessWidget {
@@ -512,8 +442,7 @@ class _EventBanner extends StatelessWidget {
     final dDay = event.startDate
         .difference(DateTime(now.year, now.month, now.day))
         .inDays;
-    final dLabel =
-        dDay > 0 ? 'D-$dDay' : (dDay == 0 ? 'D-Day' : 'D+${-dDay}');
+    final dLabel = dDay > 0 ? 'D-$dDay' : (dDay == 0 ? 'D-Day' : 'D+${-dDay}');
 
     final start = event.startDate;
     final end = event.endDate;
