@@ -1,10 +1,15 @@
 import math
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import Float, func, literal, select
 from sqlalchemy.orm import Session
 
-from app.core.constants import FOOD_CATEGORIES, VISIBLE_GEOCODE_STATUSES
+from app.core.constants import (
+    FOOD_CATEGORIES,
+    MAP_CATEGORY_GROUPS,
+    VISIBLE_GEOCODE_STATUSES,
+)
 from app.database import get_db
 from app.models import Restaurant, Review
 from app.schemas.restaurant import RestaurantListResponse, RestaurantResponse
@@ -86,6 +91,9 @@ def list_restaurants(
     is_konapay: bool | None = Query(None, description="화성페이 가맹점만"),
     is_mobeom: bool | None = Query(None, description="모범음식점만"),
     category: str | None = Query(None, description="업종명 (예: 일반음식점)"),
+    category_group: Literal["restaurant", "cafe", "convenience", "mart"] | None = Query(
+        None, description="지도 분류: restaurant, cafe, convenience, mart"
+    ),
     q: str | None = Query(None, description="상호명 검색"),
     food_only: bool = Query(True, description="음식 업종만"),
     lat: float | None = Query(None, ge=-90, le=90, description="현재 위치 위도"),
@@ -102,7 +110,12 @@ def list_restaurants(
         raise HTTPException(400, "radius_km 을 쓰려면 lat/lng 이 필요합니다")
 
     filters = list(_visible())
-    if food_only:
+    if category is not None and category_group is not None:
+        raise HTTPException(400, "category 와 category_group 은 함께 쓸 수 없습니다")
+
+    if category_group is not None:
+        filters.append(Restaurant.category.in_(MAP_CATEGORY_GROUPS[category_group]))
+    elif food_only:
         filters.append(Restaurant.category.in_(FOOD_CATEGORIES))
     if is_konapay is not None:
         filters.append(Restaurant.is_konapay.is_(is_konapay))

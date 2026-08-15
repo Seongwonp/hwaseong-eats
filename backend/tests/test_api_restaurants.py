@@ -56,6 +56,36 @@ class TestList:
         ).json()
         assert all(x["category"] == "커피전문점" for x in body["items"])
 
+    @pytest.mark.parametrize(
+        ("group", "categories"),
+        [
+            ("restaurant", {"일반음식점", "치킨전문점", "제과.제빵", "일반주점", "기타음식점", "모범음식점"}),
+            ("cafe", {"커피전문점"}),
+            ("convenience", {"편의점"}),
+            ("mart", {"슈퍼마켓.마트"}),
+        ],
+    )
+    def test_지도_분류는_서버에서_필터링된다(self, client, group, categories):
+        body = client.get(
+            "/restaurants", params={"category_group": group, "limit": 50}
+        ).json()
+        assert body["total"] > 0
+        assert body["items"]
+        assert all(item["category"] in categories for item in body["items"])
+
+    def test_업종과_지도분류는_동시에_쓸_수_없다(self, client):
+        response = client.get(
+            "/restaurants",
+            params={"category": "커피전문점", "category_group": "cafe"},
+        )
+        assert response.status_code == 400
+
+    def test_알_수_없는_지도분류는_422(self, client):
+        response = client.get(
+            "/restaurants", params={"category_group": "unknown"}
+        )
+        assert response.status_code == 422
+
 
 class TestSearch:
     def test_상호명_검색(self, client):

@@ -48,7 +48,10 @@ class ApiService {
 
   // ── 인증 ──────────────────────────────────────────────────
 
-  Future<Response> signup({required String email, required String password, required String nickname}) {
+  Future<Response> signup(
+      {required String email,
+      required String password,
+      required String nickname}) {
     return _dio.post(ApiConstants.signup, data: {
       'email': email,
       'password': password,
@@ -77,6 +80,7 @@ class ApiService {
     bool? isKonapay,
     bool? isMobeom,
     String? category,
+    String? categoryGroup,
     String? q,
     double? lat,
     double? lng,
@@ -88,6 +92,7 @@ class ApiService {
       if (isKonapay != null) 'is_konapay': isKonapay,
       if (isMobeom != null) 'is_mobeom': isMobeom,
       if (category != null) 'category': category,
+      if (categoryGroup != null) 'category_group': categoryGroup,
       if (q != null) 'q': q,
       if (lat != null) 'lat': lat,
       if (lng != null) 'lng': lng,
@@ -150,6 +155,7 @@ class ApiService {
   }
 
   Future<Response> exchangePoints(int points) {
-    return _dio.post('${ApiConstants.myPoints}/exchange', data: {'points': points});
+    return _dio
+        .post('${ApiConstants.myPoints}/exchange', data: {'points': points});
   }
 }

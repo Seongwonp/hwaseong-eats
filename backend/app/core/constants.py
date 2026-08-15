@@ -14,6 +14,17 @@ FOOD_CATEGORIES = (
     "모범음식점",
 )
 
+# 지도 UI의 사용자 친화적 분류를 코나페이 원본 업종명에 대응시킨다.
+# 원본의 "슈퍼마켓.마트"를 화면에서는 "대형마트"로 간단히 표시한다.
+MAP_CATEGORY_GROUPS = {
+    "restaurant": tuple(
+        category for category in FOOD_CATEGORIES if category != "커피전문점"
+    ),
+    "cafe": ("커피전문점",),
+    "convenience": ("편의점",),
+    "mart": ("슈퍼마켓.마트",),
+}
+
 # geocode_status 값 — 좌표를 어디서 얻었고 얼마나 믿을 수 있는지를 함께 담는다.
 #   sangga     상가(상권)정보 좌표. 국세청·카드사 기반이라 가장 믿을 만하다
 #   verified   카카오 장소 검색에서 상호명까지 일치 확인

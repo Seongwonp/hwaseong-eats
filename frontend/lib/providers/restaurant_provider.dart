@@ -141,6 +141,16 @@ bool _matchesCategory(Restaurant r, String? category) {
   }
 }
 
+String? _toApiCategoryGroup(String? category) {
+  return switch (category) {
+    '음식점' => 'restaurant',
+    '카페' => 'cafe',
+    '편의점' => 'convenience',
+    '대형마트' => 'mart',
+    _ => null,
+  };
+}
+
 final restaurantProvider = Provider<List<Restaurant>>((ref) {
   final filter = ref.watch(filterProvider);
   return mockRestaurants.where((r) {
@@ -159,10 +169,10 @@ typedef MapBounds = ({double lat, double lng, double radiusKm});
 // 지도 bounds 상태 - 화성시청 좌표 + 반경 2km 기본값
 // MapScreen.initState에서 GPS 위치로 덮어쓰고, 사용자가 명시적으로 검색할 때만 업데이트
 final mapBoundsProvider = StateProvider<MapBounds?>((ref) => (
-  lat: 37.1996,
-  lng: 126.8312,
-  radiusKm: 2.0,
-));
+      lat: 37.1996,
+      lng: 126.8312,
+      radiusKm: 2.0,
+    ));
 
 // filterProvider + mapBoundsProvider 양쪽을 watch하는 통합 지도용 provider.
 // Riverpod이 의존성 변경 시 이전 Future를 자동 폐기하므로 race condition 없음.
@@ -176,6 +186,7 @@ final mapRestaurantsProvider =
   final res = await ApiService().getRestaurants(
     isKonapay: filter.isKonapay ? true : null,
     isMobeom: filter.isMobeom ? true : null,
+    categoryGroup: _toApiCategoryGroup(filter.category),
     lat: bounds?.lat,
     lng: bounds?.lng,
     radiusKm: bounds?.radiusKm,
@@ -184,11 +195,7 @@ final mapRestaurantsProvider =
   final data = res.data as Map<String, dynamic>;
   final total = data['total'] as int? ?? 0;
   final items = data['items'] as List<dynamic>? ?? [];
-  var restaurants =
+  final restaurants =
       items.map((e) => Restaurant.fromJson(e as Map<String, dynamic>)).toList();
-  if (filter.category != null) {
-    restaurants =
-        restaurants.where((r) => _matchesCategory(r, filter.category)).toList();
-  }
   return (restaurants: restaurants, total: total);
 });
