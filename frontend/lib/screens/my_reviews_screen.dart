@@ -115,15 +115,9 @@ class MyReviewsScreen extends ConsumerWidget {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  const Row(
-                    children: [
-                      Text('최신순',
-                          style: TextStyle(
-                              fontSize: 12, color: Color(0xFF888888))),
-                      Icon(Icons.keyboard_arrow_down,
-                          size: 16, color: Color(0xFF888888)),
-                    ],
-                  ),
+                  const Text('최신순',
+                      style:
+                          TextStyle(fontSize: 12, color: Color(0xFF888888))),
                 ],
               ),
             ),

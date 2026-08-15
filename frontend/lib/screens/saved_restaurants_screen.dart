@@ -10,16 +10,26 @@ import '../providers/favorite_provider.dart';
 import '../services/api_service.dart';
 
 final _savedRestaurantsProvider = FutureProvider<List<Restaurant>>((ref) async {
-  final ids = ref.watch(favoriteProvider).toList().reversed;
-  final restaurants = await Future.wait(ids.map((id) async {
+  final ids = ref.watch(favoriteProvider).toList().reversed.toList();
+  final staleIds = <int>[];
+
+  final results = await Future.wait(ids.map((id) async {
     try {
       final response = await ApiService().getRestaurant(id);
       return Restaurant.fromJson(response.data as Map<String, dynamic>);
-    } on DioException catch (_) {
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) staleIds.add(id);
+      // 404 외 에러(네트워크 등)는 목록 유지, 재시도 가능
       return null;
     }
   }));
-  return restaurants.whereType<Restaurant>().toList();
+
+  // 서버에서 삭제된 음식점은 저장 목록에서 자동 정리
+  for (final id in staleIds) {
+    await ref.read(favoriteProvider.notifier).toggle(id);
+  }
+
+  return results.whereType<Restaurant>().toList();
 });
 
 class SavedRestaurantsScreen extends ConsumerWidget {

@@ -120,7 +120,9 @@ def list_restaurants(
 
     if category_group is not None:
         filters.append(Restaurant.category.in_(MAP_CATEGORY_GROUPS[category_group]))
-    elif food_only:
+    elif category is None and food_only:
+        # category 파라미터가 있으면 food_only 필터를 덮어쓴다.
+        # 둘을 AND로 묶으면 음식 업종이 아닌 category(편의점 등)가 항상 0건이 된다.
         filters.append(Restaurant.category.in_(FOOD_CATEGORIES))
     if is_konapay is not None:
         filters.append(Restaurant.is_konapay.is_(is_konapay))

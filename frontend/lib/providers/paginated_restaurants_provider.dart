@@ -116,7 +116,9 @@ class PaginatedRestaurantsNotifier
         nextOffset: nextOffset,
         isInitialLoading: false,
         isLoadingMore: false,
-        hasMore: page.items.isNotEmpty && nextOffset < page.total,
+        hasMore: page.items.isNotEmpty &&
+            nextOffset < page.total &&
+            page.items.length >= restaurantPageSize,
         clearInitialError: true,
         clearLoadMoreError: true,
       );

@@ -66,11 +66,21 @@ class RewardScreen extends ConsumerWidget {
       ),
       body: pointAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _RewardBody(
-          balance: authPoints,
-          items: const [],
-          onExchange: (ctx, balance, onDone) =>
-              _doExchange(ctx, ref, balance, onDone),
+        error: (_, __) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, size: 48, color: Color(0xFFCCCCCC)),
+              const SizedBox(height: 12),
+              const Text('포인트 정보를 불러오지 못했어요',
+                  style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => ref.invalidate(_pointDataProvider),
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
         ),
         data: (data) => _RewardBody(
           balance: data.balance,
