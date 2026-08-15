@@ -234,9 +234,6 @@ class _RestaurantDetailScreenState
             Icon(Icons.photo_outlined, size: 48, color: Color(0xFFCCCCCC)),
             SizedBox(height: 12),
             Text('등록된 사진이 없어요.'),
-            SizedBox(height: 4),
-            Text('사진 등록 기능은 준비 중이에요.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
           ],
         ),
       );
