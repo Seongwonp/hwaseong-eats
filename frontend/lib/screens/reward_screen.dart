@@ -97,23 +97,12 @@ class RewardScreen extends ConsumerWidget {
     int balance,
     VoidCallback onDone,
   ) async {
-    try {
-      final res = await ApiService().exchangePoints(1000);
-      final newBalance = (res.data['balance'] as num).toInt();
-      ref.read(authProvider.notifier).refreshPoints(newBalance);
-      ref.invalidate(_pointDataProvider);
-      onDone();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('1,000P → 화성페이 1,000원 전환 완료!')),
-        );
-      }
-    } catch (_) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('전환에 실패했어요. 잠시 후 다시 시도해 주세요.')),
-        );
-      }
+    // 실제 화성페이 지급 연동 전까지 포인트를 차감하지 않는 시뮬레이션
+    onDone();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('화성페이 1,000원 전환 완료! (데모 시연)')),
+      );
     }
   }
 }
@@ -294,7 +283,7 @@ class _RewardBody extends StatelessWidget {
             Text('1,000 P를 화성페이 1,000원으로\n전환할까요?',
                 textAlign: TextAlign.center, style: TextStyle(fontSize: 14)),
             SizedBox(height: 12),
-            Text('전환된 화성페이는 화성시 가맹점에서\n사용할 수 있어요',
+            Text('실제 화성페이 연동 전 데모 시연용 기능이에요',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: Colors.grey)),
           ],

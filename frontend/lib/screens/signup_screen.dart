@@ -29,7 +29,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   bool get _canSubmit =>
       _emailCtrl.text.contains('@') &&
-      _pwCtrl.text.length >= 6 &&
+      _pwCtrl.text.length >= 8 &&
       _nicknameCtrl.text.trim().length >= 2 &&
       _agreed;
 
@@ -91,7 +91,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             const SizedBox(height: 8),
             _field(
               controller: _pwCtrl,
-              hint: '6자 이상',
+              hint: '8자 이상',
               obscure: _obscure,
               suffix: IconButton(
                 icon: Icon(

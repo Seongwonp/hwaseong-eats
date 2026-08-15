@@ -17,7 +17,9 @@ Future<void> main() async {
     baseUrl: 'http://localhost',
   );
   final kakaoKey = dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '';
-  assert(kakaoKey.isNotEmpty, '.env에 KAKAO_NATIVE_APP_KEY가 없습니다. .env.example을 참고하세요.');
+  if (kakaoKey.isEmpty) {
+    throw StateError('.env에 KAKAO_NATIVE_APP_KEY가 없습니다. .env.example을 참고하세요.');
+  }
   KakaoSdk.init(nativeAppKey: kakaoKey);
 
   final container = ProviderContainer();

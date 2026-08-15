@@ -19,6 +19,7 @@ class ApiService {
 
   // 토큰 만료(401) 시 호출할 콜백 — main.dart에서 logout()으로 연결
   void Function()? onUnauthorized;
+  bool _handlingUnauthorized = false;
 
   // 앱 시작 시 저장된 토큰 로드 + baseUrl 세팅 + 401 인터셉터 등록
   Future<void> initialize() async {
@@ -27,12 +28,13 @@ class ApiService {
     _dio.interceptors.add(InterceptorsWrapper(
       onError: (error, handler) {
         if (error.response?.statusCode == 401) {
-          // 로그인/카카오 엔드포인트의 인증 실패는 인터셉터에서 제외
           final path = error.requestOptions.path;
           final isLoginEndpoint =
               path == ApiConstants.login || path == ApiConstants.kakaoLogin;
-          if (!isLoginEndpoint) {
+          if (!isLoginEndpoint && !_handlingUnauthorized) {
+            _handlingUnauthorized = true;
             onUnauthorized?.call();
+            _handlingUnauthorized = false;
           }
         }
         handler.next(error);

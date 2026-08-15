@@ -169,8 +169,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _api.clearToken();
-    state = const AuthState();
+    try {
+      await _api.clearToken();
+    } finally {
+      state = const AuthState();
+    }
   }
 
   Future<bool> deleteAccount() async {
