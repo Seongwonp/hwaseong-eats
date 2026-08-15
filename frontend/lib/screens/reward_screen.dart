@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../core/responsive.dart';
-import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 
 // 포인트 내역 한 건

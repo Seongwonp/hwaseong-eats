@@ -29,6 +29,9 @@ dependencies:
   # 토큰 저장 (암호화)
   flutter_secure_storage: ^9.0.0
 
+  # 즐겨찾기 로컬 저장
+  shared_preferences: ^2.2.0
+
   # 폰트
   google_fonts: ^6.2.1
 
