@@ -21,8 +21,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        // TODO: 카카오 개발자 콘솔 → 앱 키 → 네이티브 앱 키로 교체
-        manifestPlaceholders["kakaoScheme"] = "kakaoYOUR_NATIVE_APP_KEY"
+        manifestPlaceholders["kakaoScheme"] = "kakaoaaf4ec57b3dd4fe1b155f82942b80221"
     }
 
     buildTypes {
