@@ -5,21 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../core/responsive.dart';
-import '../models/restaurant.dart';
-import '../services/api_service.dart';
+import '../providers/paginated_restaurants_provider.dart';
+import '../widgets/pagination_footer.dart';
 import '../widgets/section_title.dart';
-
-// 검색어 기반 음식점 API 조회. 빈 문자열이면 즉시 빈 목록 반환.
-final _searchProvider =
-    FutureProvider.family<List<Restaurant>, String>((ref, query) async {
-  if (query.isEmpty) return [];
-  final res = await ApiService().getRestaurants(q: query, limit: 30);
-  final data = res.data as Map<String, dynamic>;
-  final items = data['items'] as List<dynamic>? ?? [];
-  return items
-      .map((e) => Restaurant.fromJson(e as Map<String, dynamic>))
-      .toList();
-});
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -30,6 +18,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
   Timer? _debounce;
 
   // _query: TextField에 표시되는 현재 입력값
@@ -46,8 +35,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   static const _popularKeywords = ['화성페이', '삼계탕', '장어', '국밥', '갈비'];
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients || _debouncedQuery.isEmpty) return;
+    if (_scrollController.position.extentAfter < 500) {
+      ref
+          .read(paginatedRestaurantsProvider(_debouncedQuery).notifier)
+          .loadMore();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -61,7 +66,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      if (mounted) setState(() => _debouncedQuery = normalized);
+      if (!mounted) return;
+      setState(() => _debouncedQuery = normalized);
+      if (_scrollController.hasClients) _scrollController.jumpTo(0);
     });
   }
 
@@ -141,12 +148,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
 
-    final searchAsync = ref.watch(_searchProvider(_debouncedQuery));
+    final search = ref.watch(
+      paginatedRestaurantsProvider(_debouncedQuery),
+    );
 
-    return searchAsync.when(
-      loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary)),
-      error: (_, __) => Center(
+    if (search.isInitialLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+    if (search.initialError != null) {
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -154,63 +166,77 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             const SizedBox(height: 12),
             const Text('검색 중 오류가 발생했어요', style: TextStyle(color: Colors.grey)),
             TextButton(
-              onPressed: () => ref.invalidate(_searchProvider(_debouncedQuery)),
+              onPressed: () => ref
+                  .read(paginatedRestaurantsProvider(_debouncedQuery).notifier)
+                  .retryInitial(),
               child: const Text('다시 시도'),
             ),
           ],
         ),
-      ),
-      data: (results) {
-        if (results.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.search_off, size: 48, color: Colors.grey.shade300),
-                const SizedBox(height: 12),
-                Text('"$_query" 검색 결과가 없어요',
-                    style: const TextStyle(color: Colors.grey)),
-              ],
-            ),
+      );
+    }
+    if (search.items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off, size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text('"$_query" 검색 결과가 없어요',
+                style: const TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    final showFooter =
+        search.hasMore || search.isLoadingMore || search.loadMoreError != null;
+    return ListView.separated(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: search.items.length + (showFooter ? 1 : 0),
+      separatorBuilder: (_, index) => index < search.items.length - 1
+          ? const Divider(height: 1)
+          : const SizedBox.shrink(),
+      itemBuilder: (_, index) {
+        if (index == search.items.length) {
+          return PaginationFooter(
+            isLoading: search.isLoadingMore,
+            hasError: search.loadMoreError != null,
+            onRetry: () => ref
+                .read(paginatedRestaurantsProvider(_debouncedQuery).notifier)
+                .retryLoadMore(),
           );
         }
-
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: results.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (_, i) {
-            final r = results[i];
-            return ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-              title: Text(
-                r.name,
-                style: const TextStyle(
-                    fontFamily: 'NotoSerifKR',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15),
-              ),
-              subtitle: Text(r.address,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              trailing: r.isKonapay
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.markerPay.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text('화성페이',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.markerPay)),
-                    )
-                  : null,
-              onTap: () => context.push('/restaurant/${r.id}', extra: r),
-            );
-          },
+        final r = search.items[index];
+        return ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          title: Text(
+            r.name,
+            style: const TextStyle(
+                fontFamily: 'NotoSerifKR',
+                fontWeight: FontWeight.w700,
+                fontSize: 15),
+          ),
+          subtitle: Text(r.address,
+              style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          trailing: r.isKonapay
+              ? Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.markerPay.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text('화성페이',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.markerPay)),
+                )
+              : null,
+          onTap: () => context.push('/restaurant/${r.id}', extra: r),
         );
       },
     );

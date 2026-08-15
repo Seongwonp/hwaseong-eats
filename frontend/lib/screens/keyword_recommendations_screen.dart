@@ -4,19 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../core/responsive.dart';
 import '../core/theme.dart';
-import '../models/restaurant.dart';
-import '../services/api_service.dart';
+import '../providers/paginated_restaurants_provider.dart';
 import '../widgets/home_restaurant_card.dart';
-
-final _keywordRestaurantsProvider =
-    FutureProvider.family<List<Restaurant>, String>((ref, keyword) async {
-  final response = await ApiService().getRestaurants(q: keyword, limit: 30);
-  final data = response.data as Map<String, dynamic>;
-  final items = data['items'] as List<dynamic>? ?? const [];
-  return items
-      .map((item) => Restaurant.fromJson(item as Map<String, dynamic>))
-      .toList();
-});
+import '../widgets/pagination_footer.dart';
 
 class KeywordRecommendationsScreen extends ConsumerStatefulWidget {
   const KeywordRecommendationsScreen({super.key});
@@ -28,6 +18,7 @@ class KeywordRecommendationsScreen extends ConsumerStatefulWidget {
 
 class _KeywordRecommendationsScreenState
     extends ConsumerState<KeywordRecommendationsScreen> {
+  final _scrollController = ScrollController();
   String _selected = '화성페이';
 
   static const _keywords = [
@@ -39,8 +30,33 @@ class _KeywordRecommendationsScreenState
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.extentAfter < 500) {
+      ref.read(paginatedRestaurantsProvider(_selected).notifier).loadMore();
+    }
+  }
+
+  void _selectKeyword(String keyword) {
+    if (_selected == keyword) return;
+    setState(() => _selected = keyword);
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final restaurants = ref.watch(_keywordRestaurantsProvider(_selected));
+    final restaurants = ref.watch(paginatedRestaurantsProvider(_selected));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -95,7 +111,7 @@ class _KeywordRecommendationsScreenState
                           ? AppColors.primary
                           : const Color(0xFFDDDDDD),
                     ),
-                    onSelected: (_) => setState(() => _selected = label),
+                    onSelected: (_) => _selectKeyword(label),
                   ),
                 );
               },
@@ -103,34 +119,59 @@ class _KeywordRecommendationsScreenState
           ),
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           Expanded(
-            child: restaurants.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-              error: (_, __) => _KeywordLoadError(
-                onRetry: () =>
-                    ref.invalidate(_keywordRestaurantsProvider(_selected)),
-              ),
-              data: (items) => items.isEmpty
-                  ? Center(
-                      child: Text(
-                        '$_selected 검색 결과가 없어요',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: EdgeInsets.only(top: 4, bottom: context.hp(4)),
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => const Divider(
-                        height: 1,
-                        color: Color(0xFFF0F0F0),
-                      ),
-                      itemBuilder: (_, index) => HomeRestaurantCard(
-                        restaurant: items[index],
-                        leadingKeywords: [_selected],
-                      ),
-                    ),
-            ),
+            child: restaurants.isInitialLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : restaurants.initialError != null
+                    ? _KeywordLoadError(
+                        onRetry: () => ref
+                            .read(paginatedRestaurantsProvider(_selected)
+                                .notifier)
+                            .retryInitial(),
+                      )
+                    : restaurants.items.isEmpty
+                        ? Center(
+                            child: Text(
+                              '$_selected 검색 결과가 없어요',
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: _scrollController,
+                            padding:
+                                EdgeInsets.only(top: 4, bottom: context.hp(4)),
+                            itemCount: restaurants.items.length +
+                                ((restaurants.hasMore ||
+                                        restaurants.isLoadingMore ||
+                                        restaurants.loadMoreError != null)
+                                    ? 1
+                                    : 0),
+                            separatorBuilder: (_, index) =>
+                                index < restaurants.items.length - 1
+                                    ? const Divider(
+                                        height: 1,
+                                        color: Color(0xFFF0F0F0),
+                                      )
+                                    : const SizedBox.shrink(),
+                            itemBuilder: (_, index) {
+                              if (index == restaurants.items.length) {
+                                return PaginationFooter(
+                                  isLoading: restaurants.isLoadingMore,
+                                  hasError: restaurants.loadMoreError != null,
+                                  onRetry: () => ref
+                                      .read(paginatedRestaurantsProvider(
+                                              _selected)
+                                          .notifier)
+                                      .retryLoadMore(),
+                                );
+                              }
+                              return HomeRestaurantCard(
+                                restaurant: restaurants.items[index],
+                                leadingKeywords: [_selected],
+                              );
+                            },
+                          ),
           ),
         ],
       ),
