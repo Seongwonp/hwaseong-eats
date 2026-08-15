@@ -120,10 +120,17 @@ class ApiService {
 
   // ── 리뷰 ──────────────────────────────────────────────────
 
-  Future<Response> getReviews({int? restaurantId, bool certifiedOnly = false}) {
+  Future<Response> getReviews({
+    int? restaurantId,
+    bool certifiedOnly = false,
+    int limit = 20,
+    int offset = 0,
+  }) {
     return _dio.get(ApiConstants.reviews, queryParameters: {
       if (restaurantId != null) 'restaurant_id': restaurantId,
       if (certifiedOnly) 'certified_only': true,
+      'limit': limit,
+      'offset': offset,
     });
   }
 

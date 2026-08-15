@@ -25,9 +25,15 @@ final router = GoRouter(
     GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
     GoRoute(
       path: '/restaurant/:id',
-      builder: (_, state) => RestaurantDetailScreen(
-        restaurant: state.extra as Restaurant,
-      ),
+      builder: (_, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+        if (id == null) return const InvalidRestaurantScreen();
+        return RestaurantDetailScreen(
+          restaurantId: id,
+          initialRestaurant:
+              state.extra is Restaurant ? state.extra as Restaurant : null,
+        );
+      },
     ),
     GoRoute(
       path: '/review/:id',
@@ -42,9 +48,15 @@ final router = GoRouter(
             id: int.parse(state.pathParameters['id']!),
             name: extra as String? ?? '',
             address: '',
-            lat: null, lng: null, category: null, phone: null,
-            isKonapay: false, isMobeom: false, tags: [],
-            rating: null, reviewCount: 0,
+            lat: null,
+            lng: null,
+            category: null,
+            phone: null,
+            isKonapay: false,
+            isMobeom: false,
+            tags: [],
+            rating: null,
+            reviewCount: 0,
           ),
         );
       },
