@@ -15,9 +15,8 @@ final _savedRestaurantsProvider = FutureProvider<List<Restaurant>>((ref) async {
     try {
       final response = await ApiService().getRestaurant(id);
       return Restaurant.fromJson(response.data as Map<String, dynamic>);
-    } on DioException catch (error) {
-      if (error.response?.statusCode == 404) return null;
-      rethrow;
+    } on DioException catch (_) {
+      return null;
     }
   }));
   return restaurants.whereType<Restaurant>().toList();

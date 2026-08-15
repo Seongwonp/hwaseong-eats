@@ -74,6 +74,10 @@ class ApiService {
     return _dio.post(ApiConstants.verifyResident);
   }
 
+  Future<Response> deleteMe() {
+    return _dio.delete(ApiConstants.me);
+  }
+
   // ── 음식점 ────────────────────────────────────────────────
 
   Future<Response> getRestaurants({

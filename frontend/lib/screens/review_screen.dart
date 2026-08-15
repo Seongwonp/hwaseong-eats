@@ -26,7 +26,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   bool _submitting = false;
 
   static const _keywords = ['가성비', '카공족', '혼밥', '10대 픽'];
-  static const _keywordCounts = {'가성비': 32, '카공족': 32};
 
   @override
   void dispose() {
@@ -57,15 +56,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             color: AppColors.textPrimary,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => _showSnack('임시저장되었습니다'),
-            child: const Text(
-              '임시저장',
-              style: TextStyle(fontSize: 13, color: Color(0xFF888888)),
-            ),
-          ),
-        ],
+        actions: const [],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -192,7 +183,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     runSpacing: 10,
                     children: _keywords.map((k) {
                       final selected = _selectedKeywords.contains(k);
-                      final count = _keywordCounts[k];
                       return GestureDetector(
                         onTap: () => setState(() {
                           if (selected) {
@@ -217,7 +207,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                             ),
                           ),
                           child: Text(
-                            count != null ? '$k  $count' : k,
+                            k,
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,

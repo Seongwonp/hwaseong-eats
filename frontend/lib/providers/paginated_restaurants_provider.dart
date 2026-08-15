@@ -76,7 +76,7 @@ class PaginatedRestaurantsNotifier
   bool _disposed = false;
 
   Future<void> retryInitial() async {
-    if (state.isInitialLoading) return;
+    if (state.isInitialLoading || state.isLoadingMore) return;
     state = const PaginatedRestaurantsState();
     await _fetchInitial();
   }

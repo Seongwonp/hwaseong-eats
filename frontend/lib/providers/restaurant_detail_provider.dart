@@ -5,13 +5,13 @@ import '../models/review.dart';
 import '../services/api_service.dart';
 
 final restaurantDetailProvider =
-    FutureProvider.family<Restaurant, int>((ref, restaurantId) async {
+    FutureProvider.autoDispose.family<Restaurant, int>((ref, restaurantId) async {
   final response = await ApiService().getRestaurant(restaurantId);
   return Restaurant.fromJson(response.data as Map<String, dynamic>);
 });
 
 final restaurantReviewsProvider =
-    FutureProvider.family<ReviewPage, int>((ref, restaurantId) async {
+    FutureProvider.autoDispose.family<ReviewPage, int>((ref, restaurantId) async {
   final response = await ApiService().getReviews(
     restaurantId: restaurantId,
     limit: 100,

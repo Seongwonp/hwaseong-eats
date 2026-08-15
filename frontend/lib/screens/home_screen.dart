@@ -71,7 +71,7 @@ class HomeScreen extends ConsumerWidget {
                                 const FilterState(
                               isKonapay: true,
                             );
-                            context.push('/map');
+                            context.go('/map');
                           },
                           child: Text(
                             '지도에서 보기 >',
@@ -319,7 +319,7 @@ class _ReviewBanner extends StatelessWidget {
           ),
           // 버튼
           ElevatedButton(
-            onPressed: () => context.push('/map'),
+            onPressed: () => context.go('/map'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,

@@ -8,6 +8,7 @@ class AuthState {
   final String? nickname;
   final int points;
   final bool isVerified;
+  final String? expiresAt;
   final String? error;
 
   const AuthState({
@@ -16,6 +17,7 @@ class AuthState {
     this.nickname,
     this.points = 0,
     this.isVerified = false,
+    this.expiresAt,
     this.error,
   });
 
@@ -25,6 +27,7 @@ class AuthState {
     String? nickname,
     int? points,
     bool? isVerified,
+    String? expiresAt,
     String? error,
     bool clearError = false,
   }) {
@@ -34,6 +37,7 @@ class AuthState {
       nickname: nickname ?? this.nickname,
       points: points ?? this.points,
       isVerified: isVerified ?? this.isVerified,
+      expiresAt: expiresAt ?? this.expiresAt,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -57,6 +61,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         nickname: user['nickname'] as String?,
         points: (user['points'] as num?)?.toInt() ?? 0,
         isVerified: user['is_resident_verified'] as bool? ?? false,
+        expiresAt: _formatExpiry(user['resident_expires_at'] as String?),
       );
     } catch (_) {
       // 토큰 만료 등 → 로그아웃 상태 유지
@@ -96,6 +101,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         nickname: user['nickname'] as String?,
         points: (user['points'] as num?)?.toInt() ?? 0,
         isVerified: user['is_resident_verified'] as bool? ?? false,
+        expiresAt: _formatExpiry(user['resident_expires_at'] as String?),
       );
       return true;
     } catch (e) {
@@ -109,8 +115,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState();
   }
 
+  Future<bool> deleteAccount() async {
+    try {
+      await _api.deleteMe();
+      await _api.clearToken();
+      state = const AuthState();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   void refreshPoints(int newPoints) {
     state = state.copyWith(points: newPoints);
+  }
+
+  static String? _formatExpiry(String? iso) {
+    if (iso == null) return null;
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}까지 유효';
+    } catch (_) {
+      return null;
+    }
   }
 
   String _parseError(Object e) {

@@ -147,7 +147,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              auth.isVerified ? '2027-02-01까지 유효' : '인증이 필요해요',
+                              auth.isVerified ? (auth.expiresAt ?? '인증 완료') : '인증이 필요해요',
                               style: const TextStyle(
                                   fontSize: 12, color: Color(0xFF999999)),
                             ),
@@ -282,14 +282,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         title: const Text('회원 탈퇴',
             style: TextStyle(
                 fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
-        content: const Text('탈퇴하면 모든 데이터가 삭제됩니다.\n정말 탈퇴하시겠어요?'),
+        content: const Text('탈퇴하면 작성한 식사평과 포인트가 모두 삭제됩니다.\n정말 탈퇴하시겠어요?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context), child: const Text('취소')),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await ref.read(authProvider.notifier).logout();
+              final ok = await ref.read(authProvider.notifier).deleteAccount();
+              if (!ok && mounted) {
+                _showSnack('탈퇴 처리 중 오류가 발생했어요. 다시 시도해 주세요.');
+              }
             },
             child: const Text('탈퇴', style: TextStyle(color: AppColors.primary)),
           ),
@@ -335,11 +338,6 @@ class _LoggedInProfile extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                   ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  '동탄구  •  식사평 12개',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
                 ),
               ],
             ),

@@ -9,6 +9,8 @@ final favoriteProvider = StateNotifierProvider<FavoriteNotifier, Set<int>>(
 class FavoriteNotifier extends StateNotifier<Set<int>> {
   FavoriteNotifier() : super({});
 
+  final _toggling = <int>{};
+
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     final storedIds =
@@ -17,16 +19,26 @@ class FavoriteNotifier extends StateNotifier<Set<int>> {
   }
 
   Future<void> toggle(int restaurantId) async {
+    if (_toggling.contains(restaurantId)) return;
+    _toggling.add(restaurantId);
+
+    final previous = state;
     if (state.contains(restaurantId)) {
       state = {...state}..remove(restaurantId);
     } else {
       state = {...state, restaurantId};
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-      _favoriteRestaurantIdsKey,
-      state.map((id) => id.toString()).toList(),
-    );
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _favoriteRestaurantIdsKey,
+        state.map((id) => id.toString()).toList(),
+      );
+    } catch (_) {
+      state = previous;
+    } finally {
+      _toggling.remove(restaurantId);
+    }
   }
 
   bool isFavorite(int restaurantId) => state.contains(restaurantId);
