@@ -267,10 +267,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return '$p';
   }
 
+  // 기능 미완성 안내용
   void _showSnack(String label) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
           content: Text('$label — 준비 중'), duration: const Duration(seconds: 1)),
+    );
+  }
+
+  // 일반 메시지 (성공/오류 둘 다 사용)
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
     );
   }
 
@@ -313,14 +321,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               if (trimmed.length < 2) return;
               Navigator.pop(ctx);
               final err = await ref.read(authProvider.notifier).updateNickname(trimmed);
-              if (err != null && mounted) _showSnack(err);
+              if (!mounted) return;
+              if (err != null) {
+                _showMessage(err);
+              } else {
+                _showMessage('닉네임이 변경됐어요');
+              }
             },
             child: const Text('변경',
                 style: TextStyle(color: AppColors.primary)),
           ),
         ],
       ),
-    );
+    ).then((_) => ctrl.dispose());
   }
 
   void _confirmWithdraw() {

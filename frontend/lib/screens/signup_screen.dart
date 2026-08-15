@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
-import 'login_screen.dart' show _KakaoLoginButton;
+import '../widgets/kakao_login_button.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -166,7 +166,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               Expanded(child: Divider()),
             ]),
             const SizedBox(height: 16),
-            _KakaoLoginButton(onTap: _loginWithKakao, loading: auth.isLoading),
+            KakaoLoginButton(onTap: _loginWithKakao, loading: auth.isLoading),
             const SizedBox(height: 12),
             Center(
               child: TextButton(

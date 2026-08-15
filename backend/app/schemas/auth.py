@@ -11,12 +11,19 @@ def _normalize_email(value: str) -> str:
     return value.strip().lower()
 
 
+def _normalize_nickname(value: str) -> str:
+    return value.strip()
+
+
 class SignupRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=72)
     nickname: str = Field(min_length=2, max_length=10)
 
-    _norm = field_validator("email")(lambda cls, v: _normalize_email(v))
+    _norm_email = field_validator("email")(lambda cls, v: _normalize_email(v))
+    _norm_nick = field_validator("nickname", mode="before")(
+        lambda cls, v: _normalize_nickname(v) if isinstance(v, str) else v
+    )
 
 
 class LoginRequest(BaseModel):
@@ -38,13 +45,9 @@ class TokenResponse(BaseModel):
 class NicknameUpdateRequest(BaseModel):
     nickname: str = Field(min_length=2, max_length=10)
 
-    @field_validator("nickname")
-    @classmethod
-    def normalize_nickname(cls, v: str) -> str:
-        v = v.strip()
-        if not 2 <= len(v) <= 10:
-            raise ValueError("닉네임은 2~10자여야 합니다")
-        return v
+    _norm_nick = field_validator("nickname", mode="before")(
+        lambda cls, v: _normalize_nickname(v) if isinstance(v, str) else v
+    )
 
 
 class UserResponse(BaseModel):

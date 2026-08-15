@@ -91,59 +91,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final res = await _api.login(email: email, password: password);
-      final token = res.data['access_token'] as String;
-      await _api.saveToken(token);
-
-      // 사용자 정보 조회
-      final meRes = await _api.getMe();
-      final user = meRes.data;
-      state = state.copyWith(
-        isLoggedIn: true,
-        isLoading: false,
-        nickname: user['nickname'] as String?,
-        points: (user['points'] as num?)?.toInt() ?? 0,
-        isVerified: user['is_resident_verified'] as bool? ?? false,
-        expiresAt: _formatExpiry(user['resident_expires_at'] as String?),
-      );
-      return true;
+      return await _completeLogin(res.data['access_token'] as String);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _parseError(e));
       return false;
     }
   }
 
-  Future<bool> loginWithKakao() async {
-    state = state.copyWith(isLoading: true, clearError: true);
-
-    // 카카오톡 → 카카오 계정 순서로 폴백
-    // 단, 사용자가 명시적으로 취소한 경우(CANCELED)는 폴백하지 않는다
-    OAuthToken? sdkToken;
+  // JWT 저장 → /me 조회 → 상태 반영. /me 실패 시 토큰 자동 롤백.
+  Future<bool> _completeLogin(String jwtToken) async {
+    await _api.saveToken(jwtToken);
     try {
-      if (await isKakaoTalkInstalled()) {
-        try {
-          sdkToken = await UserApi.instance.loginWithKakaoTalk();
-        } on PlatformException catch (e) {
-          if (e.code == 'CANCELED') {
-            state = state.copyWith(isLoading: false, clearError: true);
-            return false;
-          }
-          // 기술적 실패(미로그인 등) → 카카오 계정으로 폴백
-          sdkToken = await UserApi.instance.loginWithKakaoAccount();
-        }
-      } else {
-        sdkToken = await UserApi.instance.loginWithKakaoAccount();
-      }
-    } catch (_) {
-      // 카카오 계정 로그인도 실패(취소 포함) → 조용히 실패
-      state = state.copyWith(isLoading: false, clearError: true);
-      return false;
-    }
-
-    try {
-      final res = await _api.loginWithKakao(sdkToken.accessToken);
-      final jwtToken = res.data['access_token'] as String;
-      await _api.saveToken(jwtToken);
-
       final meRes = await _api.getMe();
       final user = meRes.data;
       state = state.copyWith(
@@ -155,8 +113,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
         expiresAt: _formatExpiry(user['resident_expires_at'] as String?),
       );
       return true;
-    } catch (e) {
+    } catch (_) {
       await _api.clearToken();
+      rethrow;
+    }
+  }
+
+  Future<bool> loginWithKakao() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    // 카카오톡 설치 여부에 따라 분기 → 기술적 실패만 계정 로그인으로 폴백
+    // CANCELED(사용자 명시적 취소)는 폴백 없이 즉시 종료
+    OAuthToken? sdkToken;
+    try {
+      if (await isKakaoTalkInstalled()) {
+        try {
+          sdkToken = await UserApi.instance.loginWithKakaoTalk();
+        } catch (e) {
+          if (e is PlatformException && e.code == 'CANCELED') {
+            state = state.copyWith(isLoading: false, clearError: true);
+            return false;
+          }
+          // 미로그인·SDK 오류 등 기술적 실패 → 카카오 계정으로 폴백
+          sdkToken = await UserApi.instance.loginWithKakaoAccount();
+        }
+      } else {
+        sdkToken = await UserApi.instance.loginWithKakaoAccount();
+      }
+    } catch (_) {
+      // 계정 로그인도 실패(취소 포함) → 조용히 종료
+      state = state.copyWith(isLoading: false, clearError: true);
+      return false;
+    }
+
+    try {
+      final res = await _api.loginWithKakao(sdkToken.accessToken);
+      return await _completeLogin(res.data['access_token'] as String);
+    } catch (e) {
       state = state.copyWith(isLoading: false, error: _parseError(e));
       return false;
     }
