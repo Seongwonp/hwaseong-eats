@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hwaseong_eats/models/restaurant.dart';
@@ -48,7 +49,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpWidget(ProviderScope(child: MaterialApp.router(routerConfig: router)));
     await tester.tap(find.text('음식점 열기'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('식사평 남기기'));

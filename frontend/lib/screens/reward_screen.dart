@@ -46,7 +46,6 @@ class RewardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pointAsync = ref.watch(_pointDataProvider);
-    final authPoints = ref.watch(authProvider).points;
 
     return Scaffold(
       backgroundColor: AppColors.background,
