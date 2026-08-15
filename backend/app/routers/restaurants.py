@@ -2,7 +2,7 @@ import math
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import Float, func, literal, select
+from sqlalchemy import Float, exists, func, literal, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.constants import (
@@ -94,7 +94,12 @@ def list_restaurants(
     category_group: Literal["restaurant", "cafe", "convenience", "mart"] | None = Query(
         None, description="지도 분류: restaurant, cafe, convenience, mart"
     ),
-    q: str | None = Query(None, description="상호명 검색"),
+    q: str | None = Query(
+        None,
+        min_length=1,
+        max_length=100,
+        description="상호명·업종 부분검색 또는 음식점·리뷰 태그 검색",
+    ),
     food_only: bool = Query(True, description="음식 업종만"),
     lat: float | None = Query(None, ge=-90, le=90, description="현재 위치 위도"),
     lng: float | None = Query(None, ge=-180, le=180, description="현재 위치 경도"),
@@ -124,7 +129,24 @@ def list_restaurants(
     if category:
         filters.append(Restaurant.category == category)
     if q:
-        filters.append(Restaurant.name.ilike(f"%{_escape_like(q)}%", escape="\\"))
+        search = q.strip()
+        if not search:
+            raise HTTPException(400, "검색어는 공백일 수 없습니다")
+        escaped = _escape_like(search)
+        search_filters = [
+            Restaurant.name.ilike(f"%{escaped}%", escape="\\"),
+            Restaurant.category.ilike(f"%{escaped}%", escape="\\"),
+            Restaurant.tags.contains([search]),
+            exists(
+                select(1).where(
+                    Review.restaurant_id == Restaurant.id,
+                    Review.tags.contains([search]),
+                )
+            ),
+        ]
+        if search == "화성페이":
+            search_filters.append(Restaurant.is_konapay.is_(True))
+        filters.append(or_(*search_filters))
 
     if lat is not None and radius_km is not None:
         # 위경도 인덱스를 타도록 사각형으로 먼저 자른 뒤, 남은 것만 실제 거리로 거른다.

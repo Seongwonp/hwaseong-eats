@@ -64,6 +64,7 @@ class Review(Base):
         # 음식점별·사용자별로 최신순 정렬해 꺼낸다.
         Index("ix_reviews_restaurant_created", "restaurant_id", desc("created_at")),
         Index("ix_reviews_user_created", "user_id", desc("created_at")),
+        Index("ix_reviews_tags_gin", "tags", postgresql_using="gin"),
         # 한 사람이 같은 가게에 여러 번 쓰면 리뷰당 500P 라 포인트를 무한히 만들 수 있다.
         # 다만 재방문 후 다시 쓰는 것도 함께 막히므로, 방문 단위로 허용하기로 하면
         # 이 제약을 풀고 영수증 단위 유니크로 바꿔야 한다.

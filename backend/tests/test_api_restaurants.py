@@ -10,7 +10,7 @@ from sqlalchemy import select, text
 from app.core.constants import VISIBLE_GEOCODE_STATUSES
 from app.database import SessionLocal
 from app.main import app
-from app.models import Restaurant
+from app.models import Restaurant, Review, User
 
 DONGTAN_STATION = {"lat": 37.2014, "lng": 127.0985}
 
@@ -23,6 +23,50 @@ def client():
     except Exception as e:
         pytest.skip(f"DB 연결 불가: {e}")
     return TestClient(app)
+
+
+@pytest.fixture(scope="module")
+def search_seed(client):
+    restaurant_id = 8_888_000_001
+    user_id = 8_888_000_002
+    review_id = 8_888_000_003
+    with SessionLocal() as db:
+        db.execute(text("DELETE FROM reviews WHERE id=:id"), {"id": review_id})
+        db.execute(text("DELETE FROM users WHERE id=:id"), {"id": user_id})
+        db.execute(text("DELETE FROM restaurants WHERE id=:id"), {"id": restaurant_id})
+        db.add(Restaurant(
+            id=restaurant_id,
+            name="통합검색테스트식당",
+            address="경기도 화성시 테스트로 1",
+            lat=37.2,
+            lng=127.0,
+            geocode_status="verified",
+            category="일반음식점",
+            tags=["음식점태그검색"],
+            is_konapay=True,
+        ))
+        db.add(User(
+            id=user_id,
+            email="restaurant-search@example.com",
+            password_hash="not-used",
+            nickname="검색fixture",
+        ))
+        db.flush()
+        db.add(Review(
+            id=review_id,
+            restaurant_id=restaurant_id,
+            user_id=user_id,
+            tags=["리뷰태그검색"],
+            rating=5,
+            earned_points=0,
+        ))
+        db.commit()
+    yield restaurant_id
+    with SessionLocal() as db:
+        db.execute(text("DELETE FROM reviews WHERE id=:id"), {"id": review_id})
+        db.execute(text("DELETE FROM users WHERE id=:id"), {"id": user_id})
+        db.execute(text("DELETE FROM restaurants WHERE id=:id"), {"id": restaurant_id})
+        db.commit()
 
 
 class TestList:
@@ -102,6 +146,31 @@ class TestSearch:
     def test_없는_이름은_0건(self, client):
         body = client.get("/restaurants", params={"q": "존재하지않는가게이름zzz"}).json()
         assert body["total"] == 0
+
+    def test_업종명으로_검색한다(self, client):
+        body = client.get(
+            "/restaurants", params={"q": "커피전문점", "limit": 100}
+        ).json()
+        assert body["total"] > 0
+        assert any(item["category"] == "커피전문점" for item in body["items"])
+
+    @pytest.mark.parametrize("query", ["음식점태그검색", "리뷰태그검색"])
+    def test_음식점과_리뷰_태그로_검색한다(
+        self, client, search_seed, query
+    ):
+        body = client.get("/restaurants", params={"q": query}).json()
+        assert search_seed in [item["id"] for item in body["items"]]
+
+    def test_화성페이_키워드는_가맹점을_검색한다(self, client):
+        body = client.get(
+            "/restaurants", params={"q": "화성페이", "limit": 50}
+        ).json()
+        assert body["total"] > 0
+        assert all(item["is_konapay"] for item in body["items"])
+
+    def test_공백과_너무_긴_검색어를_거절한다(self, client):
+        assert client.get("/restaurants", params={"q": "   "}).status_code == 400
+        assert client.get("/restaurants", params={"q": "가" * 101}).status_code == 422
 
 
 class TestDistance:

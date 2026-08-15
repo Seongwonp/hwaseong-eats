@@ -72,6 +72,13 @@ class Restaurant(Base):
             postgresql_using="gin",
             postgresql_ops={"name": "gin_trgm_ops"},
         ),
+        Index(
+            "ix_restaurants_category_trgm",
+            "category",
+            postgresql_using="gin",
+            postgresql_ops={"category": "gin_trgm_ops"},
+        ),
+        Index("ix_restaurants_tags_gin", "tags", postgresql_using="gin"),
         # 코나페이 원본 키가 없는 행(모범음식점 단독)은 상호명+주소로 중복을 막는다.
         Index(
             "uq_restaurants_name_address_no_seq",

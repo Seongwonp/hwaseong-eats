@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../core/responsive.dart';
-import '../models/seasonal_event.dart';
 import '../models/restaurant.dart';
 import '../services/api_service.dart';
 import '../widgets/section_title.dart';
@@ -38,9 +37,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String _query = '';
   String _debouncedQuery = '';
 
-  static const _seasonalKeywords = ['삼계탕', '장어', '포도', '수산물', '떡국', '팥죽'];
-  static const _tagKeywords = ['카공픽', '10대픽', '혼밥', '가성비'];
-  static const _popularKeywords = ['화성페이', '한식', '국밥', '돼지갈비', '포도'];
+  static const _categoryKeywords = [
+    '일반음식점',
+    '커피전문점',
+    '치킨전문점',
+    '제과.제빵',
+  ];
+  static const _popularKeywords = ['화성페이', '삼계탕', '장어', '국밥', '갈비'];
 
   @override
   void dispose() {
@@ -52,12 +55,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _onChanged(String value) {
     setState(() => _query = value);
     _debounce?.cancel();
-    if (value.isEmpty) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
       setState(() => _debouncedQuery = '');
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      if (mounted) setState(() => _debouncedQuery = value);
+      if (mounted) setState(() => _debouncedQuery = normalized);
     });
   }
 
@@ -68,8 +72,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final todayEvent = getTodayEvent();
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -83,7 +85,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           controller: _controller,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: '음식점 이름, 메뉴, 태그 검색',
+            hintText: '음식점 이름, 업종, 리뷰 태그 검색',
             hintStyle: TextStyle(
                 fontSize: 14,
                 color: AppColors.textPrimary.withValues(alpha: 0.4)),
@@ -101,34 +103,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           onChanged: _onChanged,
         ),
       ),
-      body: _query.isEmpty
-          ? _buildSuggestions(todayEvent)
-          : _buildResults(),
+      body: _query.trim().isEmpty ? _buildSuggestions() : _buildResults(),
     );
   }
 
-  Widget _buildSuggestions(SeasonalEvent? todayEvent) {
+  Widget _buildSuggestions() {
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: context.hPad, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (todayEvent != null) ...[
-            SectionTitle('${todayEvent.name} 추천'),
-            const SizedBox(height: 10),
-            _ChipWrap(
-              keywords: _seasonalKeywords,
-              color: AppColors.markerSeasonal,
-              onTap: _setQuery,
-            ),
-            const SizedBox(height: 24),
-          ],
-          const SectionTitle('태그로 찾기'),
+          const SectionTitle('업종으로 찾기'),
           const SizedBox(height: 10),
           _ChipWrap(
-            keywords: _tagKeywords.map((k) => '#$k').toList(),
-            color: AppColors.primary,
-            onTap: (k) => _setQuery(k.replaceFirst('#', '')),
+            keywords: _categoryKeywords,
+            color: AppColors.markerSeasonal,
+            onTap: _setQuery,
           ),
           const SizedBox(height: 24),
           const SectionTitle('자주 찾는 키워드'),
@@ -145,7 +135,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _buildResults() {
     // 입력 중(_query != _debouncedQuery)에는 로딩 표시
-    if (_query != _debouncedQuery) {
+    if (_query.trim() != _debouncedQuery) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
@@ -154,19 +144,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final searchAsync = ref.watch(_searchProvider(_debouncedQuery));
 
     return searchAsync.when(
-      loading: () =>
-          const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary)),
       error: (_, __) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.cloud_off, size: 48, color: Colors.grey.shade300),
             const SizedBox(height: 12),
-            const Text('검색 중 오류가 발생했어요',
-                style: TextStyle(color: Colors.grey)),
+            const Text('검색 중 오류가 발생했어요', style: TextStyle(color: Colors.grey)),
             TextButton(
-              onPressed: () =>
-                  ref.invalidate(_searchProvider(_debouncedQuery)),
+              onPressed: () => ref.invalidate(_searchProvider(_debouncedQuery)),
               child: const Text('다시 시도'),
             ),
           ],
@@ -220,8 +208,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               color: AppColors.markerPay)),
                     )
                   : null,
-              onTap: () =>
-                  context.push('/restaurant/${r.id}', extra: r),
+              onTap: () => context.push('/restaurant/${r.id}', extra: r),
             );
           },
         );
