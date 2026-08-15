@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -16,7 +17,7 @@ from app.core.security import (
 )
 from app.database import get_db
 from app.models import PointHistory, User
-from app.schemas.auth import KakaoLoginRequest, LoginRequest, SignupRequest, TokenResponse, UserResponse
+from app.schemas.auth import KakaoLoginRequest, LoginRequest, NicknameUpdateRequest, SignupRequest, TokenResponse, UserResponse
 from app.schemas.point import (
     ExchangeRequest,
     ExchangeResponse,
@@ -99,26 +100,25 @@ def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
     if resp.status_code != 200:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "카카오 인증에 실패했습니다")
 
-    data = resp.json()
-    kakao_id = int(data["id"])
-    nickname_raw = (
-        data.get("kakao_account", {}).get("profile", {}).get("nickname") or ""
-    ).strip()
+    try:
+        data = resp.json()
+        kakao_id = int(data["id"])
+    except Exception as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "카카오 응답을 파싱할 수 없습니다") from e
 
     # 기존 카카오 계정이면 바로 토큰 발급
     user = db.scalar(select(User).where(User.kakao_id == kakao_id))
     if user:
         return TokenResponse(access_token=create_access_token(user.id))
 
-    # 신규 가입 — 닉네임 중복이면 숫자 suffix 붙임
-    base = nickname_raw[:10] if len(nickname_raw) >= 2 else f"볏섬{kakao_id % 10000:04d}"
-    final_nickname = base
-    suffix = 1
+    # 신규 가입 — 랜덤 닉네임 자동 생성 (볏섬 + 4자리 hex)
+    final_nickname = f"볏섬{secrets.token_hex(2)}"
+    attempts = 0
     while db.scalar(select(User.id).where(User.nickname == final_nickname)):
-        final_nickname = f"{base[:9]}{suffix}"
-        suffix += 1
-        if suffix > 99:
-            final_nickname = str(kakao_id)[-10:]
+        final_nickname = f"볏섬{secrets.token_hex(2)}"
+        attempts += 1
+        if attempts > 10:
+            final_nickname = f"볏섬{str(kakao_id)[-6:]}"
             break
 
     user = User(kakao_id=kakao_id, nickname=final_nickname)
@@ -137,6 +137,24 @@ def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 def me(user: User = Depends(get_current_user)):
+    return user
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_me(
+    body: NicknameUpdateRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """닉네임 변경. 이미 사용 중인 닉네임이면 409."""
+    exists = db.scalar(
+        select(User.id).where(User.nickname == body.nickname, User.id != user.id)
+    )
+    if exists:
+        raise HTTPException(status.HTTP_409_CONFLICT, "이미 사용 중인 닉네임입니다")
+    user.nickname = body.nickname
+    db.commit()
+    db.refresh(user)
     return user
 
 

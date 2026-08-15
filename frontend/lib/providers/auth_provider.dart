@@ -113,22 +113,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> loginWithKakao() async {
     state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      // 카카오톡 설치 여부에 따라 로그인 방식 분기
-      OAuthToken token;
-      try {
-        if (await isKakaoTalkInstalled()) {
-          token = await UserApi.instance.loginWithKakaoTalk();
-        } else {
-          token = await UserApi.instance.loginWithKakaoAccount();
-        }
-      } catch (_) {
-        // 사용자가 취소하거나 카카오 SDK 오류 → 로딩만 해제, 에러 메시지 없음
-        state = state.copyWith(isLoading: false, clearError: true);
-        return false;
-      }
 
-      final res = await _api.loginWithKakao(token.accessToken);
+    // 카카오톡 → 카카오 계정 순서로 폴백
+    OAuthToken? sdkToken;
+    try {
+      if (await isKakaoTalkInstalled()) {
+        try {
+          sdkToken = await UserApi.instance.loginWithKakaoTalk();
+        } catch (_) {
+          sdkToken = await UserApi.instance.loginWithKakaoAccount();
+        }
+      } else {
+        sdkToken = await UserApi.instance.loginWithKakaoAccount();
+      }
+    } catch (_) {
+      // 사용자 취소 또는 SDK 오류 → 조용히 실패
+      state = state.copyWith(isLoading: false, clearError: true);
+      return false;
+    }
+
+    try {
+      final res = await _api.loginWithKakao(sdkToken.accessToken);
       final jwtToken = res.data['access_token'] as String;
       await _api.saveToken(jwtToken);
 
@@ -144,8 +149,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } catch (e) {
+      await _api.clearToken();
       state = state.copyWith(isLoading: false, error: _parseError(e));
       return false;
+    }
+  }
+
+  Future<String?> updateNickname(String nickname) async {
+    try {
+      final res = await _api.updateNickname(nickname);
+      state = state.copyWith(nickname: res.data['nickname'] as String?);
+      return null;
+    } catch (e) {
+      if (e is DioException && e.response?.statusCode == 409) {
+        return '이미 사용 중인 닉네임이에요.';
+      }
+      return _parseError(e);
     }
   }
 

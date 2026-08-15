@@ -35,6 +35,10 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class NicknameUpdateRequest(BaseModel):
+    nickname: str = Field(min_length=2, max_length=10)
+
+
 class UserResponse(BaseModel):
     id: int
     email: str | None  # 카카오 전용 계정은 이메일이 없을 수 있다

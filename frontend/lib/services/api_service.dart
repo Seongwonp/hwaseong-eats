@@ -84,6 +84,10 @@ class ApiService {
     });
   }
 
+  Future<Response> updateNickname(String nickname) {
+    return _dio.patch(ApiConstants.me, data: {'nickname': nickname});
+  }
+
   // ── 음식점 ────────────────────────────────────────────────
 
   Future<Response> getRestaurants({

@@ -44,7 +44,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               // ── 프로필 카드 ────────────────────────────────
               _Card(
                 child: auth.isLoggedIn
-                    ? _LoggedInProfile(auth: auth)
+                    ? _LoggedInProfile(auth: auth, onEdit: _showNicknameEdit)
                     : _LoggedOutProfile(),
               ),
 
@@ -274,6 +274,55 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _showNicknameEdit() {
+    final ctrl = TextEditingController(text: ref.read(authProvider).nickname ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('닉네임 변경',
+            style: TextStyle(
+                fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLength: 10,
+          decoration: InputDecoration(
+            hintText: '2~10자 입력',
+            hintStyle: const TextStyle(fontSize: 13),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade300)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade300)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary)),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소')),
+          TextButton(
+            onPressed: () async {
+              final trimmed = ctrl.text.trim();
+              if (trimmed.length < 2) return;
+              Navigator.pop(ctx);
+              final err = await ref.read(authProvider.notifier).updateNickname(trimmed);
+              if (err != null && mounted) _showSnack(err);
+            },
+            child: const Text('변경',
+                style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _confirmWithdraw() {
     showDialog(
       context: context,
@@ -306,7 +355,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
 class _LoggedInProfile extends StatelessWidget {
   final AuthState auth;
-  const _LoggedInProfile({required this.auth});
+  final VoidCallback onEdit;
+  const _LoggedInProfile({required this.auth, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -326,24 +376,19 @@ class _LoggedInProfile extends StatelessWidget {
             child: const Icon(Icons.person, color: AppColors.primary, size: 30),
           ),
           const SizedBox(width: 14),
-          // 닉네임 + 정보
+          // 닉네임
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  nickname,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
+            child: Text(
+              nickname,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
           OutlinedButton(
-            onPressed: () => _showSnack(context, '정보 수정'),
+            onPressed: onEdit,
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.textPrimary,
               side: const BorderSide(color: Color(0xFFCCCCCC)),
@@ -351,18 +396,11 @@ class _LoggedInProfile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             ),
-            child: const Text('정보 수정',
+            child: const Text('닉네임 변경',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
-    );
-  }
-
-  void _showSnack(BuildContext context, String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('$label — 준비 중'), duration: const Duration(seconds: 1)),
     );
   }
 }
