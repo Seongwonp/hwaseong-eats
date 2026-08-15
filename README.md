@@ -20,6 +20,22 @@
 
 ---
 
+## 앱 화면
+
+2026년 8월 16일 Android 에뮬레이터에서 `feat/frontend` 브랜치를 직접 빌드해 확인한 화면이다.
+
+| 홈 | 음식점 지도 |
+|---|---|
+| <img src="docs/screenshots/home.png" width="320" alt="볏섬 홈 화면"> | <img src="docs/screenshots/map.png" width="320" alt="화성시 음식점 지도와 마커"> |
+
+| 회원가입 입력 검증 | 화성페이 전환 데모 |
+|---|---|
+| <img src="docs/screenshots/signup-validation.png" width="320" alt="8자 비밀번호 회원가입 검증 화면"> | <img src="docs/screenshots/reward-demo.png" width="320" alt="화성페이 전환 데모 안내 다이얼로그"> |
+
+> 화성페이 전환은 실제 지급 연동 전 데모 시뮬레이션이며 포인트를 차감하지 않는다.
+
+---
+
 ## 팀
 
 | 이름 | 역할 |
