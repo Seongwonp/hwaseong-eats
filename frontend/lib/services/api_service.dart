@@ -18,7 +18,7 @@ class ApiService {
   final _storage = const FlutterSecureStorage();
 
   // 토큰 만료(401) 시 호출할 콜백 — main.dart에서 logout()으로 연결
-  void Function()? onUnauthorized;
+  Future<void> Function()? onUnauthorized;
   bool _handlingUnauthorized = false;
 
   // 앱 시작 시 저장된 토큰 로드 + baseUrl 세팅 + 401 인터셉터 등록
@@ -26,15 +26,18 @@ class ApiService {
     _dio.options.baseUrl = ApiConstants.baseUrl;
 
     _dio.interceptors.add(InterceptorsWrapper(
-      onError: (error, handler) {
+      onError: (error, handler) async {
         if (error.response?.statusCode == 401) {
           final path = error.requestOptions.path;
           final isLoginEndpoint =
               path == ApiConstants.login || path == ApiConstants.kakaoLogin;
           if (!isLoginEndpoint && !_handlingUnauthorized) {
             _handlingUnauthorized = true;
-            onUnauthorized?.call();
-            _handlingUnauthorized = false;
+            try {
+              await onUnauthorized?.call();
+            } finally {
+              _handlingUnauthorized = false;
+            }
           }
         }
         handler.next(error);
