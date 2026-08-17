@@ -1,3 +1,4 @@
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -29,6 +30,21 @@ router = APIRouter()
 
 # 기획서 p.9 — 주민 인증은 6개월 유효라 매번 하지 않아도 된다.
 RESIDENT_VERIFY_VALID = timedelta(days=182)
+
+
+def _kakao_app_id() -> int:
+    """카카오 앱 ID. 카카오 개발자 콘솔 > 앱 설정 > 요약 정보 의 숫자 ID 다.
+
+    security.py 의 _secret() 과 같이 호출 시점에 읽는다. 임포트 시점에 읽으면
+    이 값이 필요 없는 테스트와 배치 스크립트까지 같이 죽는다.
+    """
+    raw = os.getenv("KAKAO_APP_ID")
+    if not raw:
+        raise RuntimeError("KAKAO_APP_ID 가 없습니다. backend/.env 를 확인하세요.")
+    try:
+        return int(raw)
+    except ValueError as e:
+        raise RuntimeError(f"KAKAO_APP_ID 가 숫자가 아닙니다: {raw!r}") from e
 
 
 @router.post("/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -86,12 +102,20 @@ def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
 def kakao_login(request: Request, body: KakaoLoginRequest, db: Session = Depends(get_db)):
     """카카오 소셜 로그인.
 
-    앱에서 받은 카카오 액세스 토큰으로 카카오 사용자 정보를 조회한 뒤,
+    앱에서 받은 카카오 액세스 토큰의 발급처를 확인한 뒤,
     기존 계정이 있으면 로그인, 없으면 신규 계정을 생성한다.
+
+    /v2/user/me 가 아니라 /v1/user/access_token_info 를 쓴다. 전자는 토큰이 유효한
+    카카오 토큰인지만 알려주고 어느 앱에서 발급됐는지는 알려주지 않는다. 그러면 다른
+    카카오 앱에서 발급된 토큰으로도 로그인이 되어버린다. 후자는 회원번호와 함께 app_id
+    를 돌려주므로 우리 앱 토큰인지 확인할 수 있다. 닉네임은 어차피 랜덤 생성이라
+    프로필 조회가 필요 없고, 호출 횟수도 그대로 1회다.
     """
+    expected_app_id = _kakao_app_id()
+
     try:
         resp = httpx.get(
-            "https://kapi.kakao.com/v2/user/me",
+            "https://kapi.kakao.com/v1/user/access_token_info",
             headers={"Authorization": f"Bearer {body.access_token}"},
             timeout=10.0,
         )
@@ -108,8 +132,13 @@ def kakao_login(request: Request, body: KakaoLoginRequest, db: Session = Depends
     try:
         data = resp.json()
         kakao_id = int(data["id"])
+        app_id = int(data["app_id"])
     except Exception as e:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "카카오 응답을 파싱할 수 없습니다") from e
+
+    # 다른 앱에서 발급된 토큰은 우리 회원번호 체계와 무관하다. 401 로 막는다.
+    if app_id != expected_app_id:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "카카오 인증에 실패했습니다")
 
     # 기존 카카오 계정이면 바로 토큰 발급
     user = db.scalar(select(User).where(User.kakao_id == kakao_id))
