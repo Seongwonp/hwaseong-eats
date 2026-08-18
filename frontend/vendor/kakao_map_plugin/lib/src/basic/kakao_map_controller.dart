@@ -77,7 +77,14 @@ class KakaoMapController {
 
   /// draw markers
   addMarker({List<Marker>? markers}) async {
-    if (markers == null || markers.isEmpty) {
+    if (markers == null) {
+      return;
+    }
+    if (markers.isEmpty) {
+      // 빈 리스트는 "마커를 전부 지워라"는 의도다. markerIds 없이 호출하면
+      // JS clearMarker(ids)가 전체를 지운다 (인자 있는 clearMarker는 반대로
+      // "그 id들만 남기고 나머지를 지우는" 동작이라 여기선 쓰면 안 됨).
+      clearMarker();
       return;
     }
 

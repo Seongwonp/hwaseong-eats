@@ -631,8 +631,25 @@ class _KakaoMapState extends State<KakaoMap> with WidgetsBindingObserver {
     }
 
     function addMarker(markerId, latLng, draggable, width = 24, height = 30, offsetX = null, offsetY = null, imageSrc = '', infoWindowText = '', infoWindowRemovable = true, infoWindowFirstShow, zIndex, imageType) {
-        // marker에 동일한 ID가 있는지 확인
-        if (markers.some(existingMarker => existingMarker.id === markerId)) {
+        // marker에 동일한 ID가 있으면 새로 만들지 않고 위치/크기/zIndex만 갱신한다.
+        // clearMarker(ids)는 "ids에 없는 마커만 지움"(orphan 정리)이라 같은 id는 안 지워지고,
+        // 여기서 그냥 return 해버리면 같은 id로 크기·zIndex를 바꿔도 반영이 안 된다.
+        const existingMarker = markers.find(m => m.id === markerId);
+        if (existingMarker) {
+            latLng = JSON.parse(latLng);
+            existingMarker.setPosition(new kakao.maps.LatLng(latLng.latitude, latLng.longitude));
+            if (zIndex) {
+                existingMarker.setZIndex(zIndex);
+            }
+            if (imageSrc !== '' && imageSrc !== 'null') {
+                let imageSize = new kakao.maps.Size(width, height);
+                let offset;
+                if (offsetX && offsetY) {
+                    offset = new kakao.maps.Point(offsetX, offsetY);
+                }
+                let markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, {offset: offset});
+                existingMarker.setImage(markerImage);
+            }
             return;
         }
 
@@ -956,13 +973,20 @@ class _KakaoMapState extends State<KakaoMap> with WidgetsBindingObserver {
     const OVERLAY_TAP_DEBOUNCE_MS = 300;
 
     function addCustomOverlay(customOverlayId, latLng, content, xAnchor, yAnchor, zIndex) {
-        // customOverlays에 동일한 ID가 있는지 확인
-        if (customOverlays.some(existingOverlay => existingOverlay.id === customOverlayId)) {
-            return;
-        }
-
         latLng = JSON.parse(latLng);
         let markerPosition = new kakao.maps.LatLng(latLng.latitude, latLng.longitude); // 마커가 표시될 위치입니다
+
+        // customOverlays에 동일한 ID가 있으면 새로 만들지 않고 위치/내용만 갱신한다.
+        // (addMarker와 동일한 이유 — clearCustomOverlay(ids)가 같은 id는 안 지운다.)
+        const existingOverlay = customOverlays.find(o => o.id === customOverlayId);
+        if (existingOverlay) {
+            existingOverlay.setPosition(markerPosition);
+            existingOverlay.setContent('<div id="' + customOverlayId + '">' + content + '</div>');
+            if (zIndex) {
+                existingOverlay.setZIndex(zIndex);
+            }
+            return;
+        }
 
         content = '<div id="' + customOverlayId + '">' + content + '</div>'
         if (${widget.onCustomOverlayTap != null}) {

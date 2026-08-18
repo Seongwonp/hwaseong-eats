@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../core/responsive.dart';
 import '../providers/paginated_restaurants_provider.dart';
+import '../providers/restaurant_provider.dart';
 import '../widgets/pagination_footer.dart';
 import '../widgets/section_title.dart';
 
@@ -236,7 +237,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           color: AppColors.markerPay)),
                 )
               : null,
-          onTap: () => context.push('/restaurant/${r.id}', extra: r),
+          onTap: () {
+            // 지도 화면으로 돌아가서 이 가게를 선택 상태로 만든다
+            // (마커 탭과 동일하게 지도 확대 + 프리뷰 카드 표시).
+            ref.read(selectedRestaurantProvider.notifier).state = r;
+            context.pop();
+          },
         );
       },
     );

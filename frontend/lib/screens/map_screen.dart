@@ -194,7 +194,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   // --- 마커 ---
 
-  // restaurants 참조 + 선택 상태가 같으면 재사용 → KakaoMap 불필요 업데이트 방지
+  static const _highlightOverlayId = 'selected-restaurant-highlight';
+
+  // restaurants 참조 + 선택 상태가 같으면 재사용 → KakaoMap 불필요 업데이트 방지.
+  // 가게가 선택된 상태면 다른 마커는 전부 숨기고, 선택된 가게만
+  // _buildHighlightOverlay()가 그리는 강조 핀으로 표시한다.
   List<Marker> _getMarkers(List<Restaurant> restaurants) {
     final selectedId = _selectedRestaurant?.id.toString();
     if (identical(restaurants, _markerSource) &&
@@ -203,21 +207,44 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     _markerSource = restaurants;
     _cachedSelectedId = selectedId;
+    if (selectedId != null) {
+      _cachedMarkers = const [];
+      return _cachedMarkers;
+    }
     _cachedMarkers = restaurants
         .where((r) => r.lat != null && r.lng != null)
-        .map((r) {
-          final isSelected =
-              selectedId != null && r.id.toString() == selectedId;
-          return Marker(
-            markerId: r.id.toString(),
-            latLng: LatLng(r.lat!, r.lng!),
-            width: isSelected ? 36 : 24,
-            height: isSelected ? 45 : 30,
-            zIndex: isSelected ? 10 : 0,
-          );
-        })
+        .map((r) => Marker(
+              markerId: r.id.toString(),
+              latLng: LatLng(r.lat!, r.lng!),
+            ))
         .toList();
     return _cachedMarkers;
+  }
+
+  // 선택된 가게를 카카오 기본 마커보다 훨씬 크게 강조 표시하는 커스텀 핀.
+  // border-radius 트릭으로 물방울(pin) 모양을 만들고 45도 회전시킨다.
+  List<CustomOverlay> _buildHighlightOverlay() {
+    final r = _selectedRestaurant;
+    if (r == null || r.lat == null || r.lng == null) return const [];
+    return [
+      CustomOverlay(
+        customOverlayId: _highlightOverlayId,
+        latLng: LatLng(r.lat!, r.lng!),
+        zIndex: 20,
+        content: '''
+          <div style="
+            width: 40px;
+            height: 40px;
+            border-radius: 50% 50% 50% 0;
+            background: #FF4F00;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+            transform: rotate(-45deg);
+            transform-origin: center;
+          "></div>
+        ''',
+      ),
+    ];
   }
 
   void _onMarkerTap(String markerId, LatLng latLng, int zoomLevel) {
@@ -225,9 +252,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ref.read(mapRestaurantsProvider).valueOrNull?.restaurants ?? [];
     final idx = restaurants.indexWhere((r) => r.id.toString() == markerId);
     if (idx == -1) return;
-    setState(() => _selectedRestaurant = restaurants[idx]);
-    _mapController?.setCenter(latLng);
-    _mapController?.setLevel(5);
+    _selectRestaurant(restaurants[idx]);
+  }
+
+  // 마커 탭과 목록 카드 탭이 공유하는 선택 로직 — 지도 이동/확대 + 프리뷰 표시.
+  void _selectRestaurant(Restaurant restaurant) {
+    setState(() => _selectedRestaurant = restaurant);
+    if (restaurant.lat != null && restaurant.lng != null) {
+      _mapController?.setCenter(LatLng(restaurant.lat!, restaurant.lng!));
+      _mapController?.setLevel(2);
+    }
     if (_sheetController.isAttached) {
       _sheetController.animateTo(
         0.28,
@@ -271,6 +305,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget build(BuildContext context) {
     final isTest = WidgetsBinding.instance.runtimeType.toString().contains('Test');
 
+    // 검색 화면에서 가게를 선택하고 돌아온 경우 — 마커 탭과 동일하게 선택 처리.
+    ref.listen<Restaurant?>(selectedRestaurantProvider, (previous, next) {
+      if (next != null) {
+        _selectRestaurant(next);
+        ref.read(selectedRestaurantProvider.notifier).state = null;
+      }
+    });
+
     final filter = ref.watch(filterProvider);
     final mapAsync = ref.watch(mapRestaurantsProvider);
     final restaurants = mapAsync.valueOrNull?.restaurants ?? [];
@@ -305,6 +347,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       center: LatLng(_kDefaultLat, _kDefaultLng),
                       currentLevel: 8,
                       markers: _getMarkers(restaurants), // 메모이제이션된 리스트
+                      customOverlays: _buildHighlightOverlay(),
                     ),
 
           // ── 볏섬 로고 ─────────────────────────────────────
@@ -497,7 +540,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                                   color: Color(0xFFF0F0F0)),
                                           itemBuilder: (_, i) =>
                                               _MapRestaurantCard(
-                                                  restaurant: restaurants[i]),
+                                                restaurant: restaurants[i],
+                                                onTap: () => _selectRestaurant(
+                                                    restaurants[i]),
+                                              ),
                                         ),
                         ),
                       ],
@@ -744,14 +790,14 @@ class _MapHintChip extends StatelessWidget {
 
 class _MapRestaurantCard extends ConsumerWidget {
   final Restaurant restaurant;
-  const _MapRestaurantCard({required this.restaurant});
+  final VoidCallback onTap;
+  const _MapRestaurantCard({required this.restaurant, required this.onTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isFav = ref.watch(favoriteProvider).contains(restaurant.id);
     return InkWell(
-      onTap: () =>
-          context.push('/restaurant/${restaurant.id}', extra: restaurant),
+      onTap: onTap,
       child: Padding(
         padding: EdgeInsets.fromLTRB(context.hPad, 14, context.hPad, 14),
         child: Column(
