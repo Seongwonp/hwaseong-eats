@@ -27,19 +27,25 @@ MAP_CATEGORY_GROUPS = {
 
 # geocode_status 값 — 좌표를 어디서 얻었고 얼마나 믿을 수 있는지를 함께 담는다.
 #   sangga     상가(상권)정보 좌표. 국세청·카드사 기반이라 가장 믿을 만하다
+#   localdata  지방행정 인허가 데이터(일반음식점표준데이터) 원본 좌표. 인허가 등록 시
+#              사업자가 신고한 좌표라 sangga 급으로 믿을 만하다
 #   verified   카카오 장소 검색에서 상호명까지 일치 확인
 #   ok         카카오 좌표. 상호명 대조는 안 거침
 #   konapay    코나페이 원본 좌표. 소수점 5~6자리로 정밀도가 낮아 따로 구분한다
 #   unverified 좌표가 도로 중심점 수준. 다른 업소와 같은 지점에 찍혀 있다
 #   pending    아직 좌표를 안 채움
 #   failed     좌표를 못 찾음
+#   duplicate  다른 출처로 이미 들어온 같은 업소. 좌표는 정상이지만 지도에 두 번
+#              찍히므로 조회에서만 뺀다. 어느 쪽을 남길지는 화성페이 여부로 정한다
 GEOCODE_SANGGA = "sangga"
+GEOCODE_LOCALDATA = "localdata"
 GEOCODE_VERIFIED = "verified"
 GEOCODE_OK = "ok"
 GEOCODE_KONAPAY = "konapay"
 GEOCODE_UNVERIFIED = "unverified"
 GEOCODE_PENDING = "pending"
 GEOCODE_FAILED = "failed"
+GEOCODE_DUPLICATE = "duplicate"
 
 # API 응답에 내보낼 상태. unverified 는 좌표를 믿을 수 없어 지도에서 제외한다.
 # 데이터는 지우지 않고 남겨두되, 조회에서만 빠진다.
@@ -48,6 +54,7 @@ GEOCODE_FAILED = "failed"
 # 노출은 하되 출처를 구분해 둔다. 프론트가 필요하면 이 값으로 표시를 달리하면 된다.
 VISIBLE_GEOCODE_STATUSES = (
     GEOCODE_SANGGA,
+    GEOCODE_LOCALDATA,
     GEOCODE_VERIFIED,
     GEOCODE_OK,
     GEOCODE_KONAPAY,
