@@ -11,7 +11,7 @@ import '../providers/festival_provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../providers/favorite_provider.dart';
 import '../widgets/seasonal_banner.dart';
-import '../widgets/restaurant_bottom_sheet.dart';
+import '../widgets/restaurant_preview_card.dart';
 import '../widgets/web_map_view_conditional.dart';
 
 const _kDefaultLat = 37.1996;
@@ -39,10 +39,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   bool _showSearchHere = false;
   bool _isLocating = false;
 
-  // 마커 리스트 메모이제이션 — restaurants 참조가 바뀔 때만 재생성해
-  // KakaoMap이 동일 내용을 다른 참조로 감지해 내부 업데이트하는 걸 방지
+  // 선택된 음식점 (마커 탭 시 설정, null이면 목록 모드)
+  Restaurant? _selectedRestaurant;
+  bool _navigatingToDetail = false;
+  final _sheetController = DraggableScrollableController();
+
+  // 마커 리스트 메모이제이션 — restaurants 참조 + 선택 상태가 바뀔 때만 재생성
   List<Restaurant> _markerSource = const [];
   List<Marker> _cachedMarkers = const [];
+  String? _cachedSelectedId;
 
   static const _categoryItems = [
     ('음식점', Icons.restaurant),
@@ -60,6 +65,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _locationInitialized = true;
       _initLocation();
     });
+  }
+
+  @override
+  void dispose() {
+    _sheetController.dispose();
+    super.dispose();
   }
 
   // --- 위치 획득 ---
@@ -183,16 +194,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   // --- 마커 ---
 
-  // restaurants 참조가 같으면 이전 리스트 재사용 → KakaoMap 불필요 업데이트 방지
+  // restaurants 참조 + 선택 상태가 같으면 재사용 → KakaoMap 불필요 업데이트 방지
   List<Marker> _getMarkers(List<Restaurant> restaurants) {
-    if (identical(restaurants, _markerSource)) return _cachedMarkers;
+    final selectedId = _selectedRestaurant?.id.toString();
+    if (identical(restaurants, _markerSource) &&
+        selectedId == _cachedSelectedId) {
+      return _cachedMarkers;
+    }
     _markerSource = restaurants;
+    _cachedSelectedId = selectedId;
     _cachedMarkers = restaurants
         .where((r) => r.lat != null && r.lng != null)
-        .map((r) => Marker(
-              markerId: r.id.toString(),
-              latLng: LatLng(r.lat!, r.lng!),
-            ))
+        .map((r) {
+          final isSelected =
+              selectedId != null && r.id.toString() == selectedId;
+          return Marker(
+            markerId: r.id.toString(),
+            latLng: LatLng(r.lat!, r.lng!),
+            width: isSelected ? 36 : 24,
+            height: isSelected ? 45 : 30,
+            zIndex: isSelected ? 10 : 0,
+          );
+        })
         .toList();
     return _cachedMarkers;
   }
@@ -202,13 +225,44 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ref.read(mapRestaurantsProvider).valueOrNull?.restaurants ?? [];
     final idx = restaurants.indexWhere((r) => r.id.toString() == markerId);
     if (idx == -1) return;
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => RestaurantBottomSheet(restaurant: restaurants[idx]),
-    );
+    setState(() => _selectedRestaurant = restaurants[idx]);
+    _mapController?.setCenter(latLng);
+    _mapController?.setLevel(5);
+    if (_sheetController.isAttached) {
+      _sheetController.animateTo(
+        0.28,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _onMapTap(LatLng latLng) {
+    if (_selectedRestaurant == null) return;
+    setState(() => _selectedRestaurant = null);
+    if (_sheetController.isAttached) {
+      _sheetController.animateTo(
+        0.38,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _goToDetail(Restaurant restaurant) {
+    if (_navigatingToDetail) return;
+    _navigatingToDetail = true;
+    setState(() => _selectedRestaurant = null);
+    context.push('/restaurant/${restaurant.id}', extra: restaurant).then((_) {
+      _navigatingToDetail = false;
+      if (mounted && _sheetController.isAttached) {
+        _sheetController.animateTo(
+          0.38,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   // --- build ---
@@ -216,8 +270,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final isTest = WidgetsBinding.instance.runtimeType.toString().contains('Test');
-    final isWebOrTest = kIsWeb || isTest;
-    
+
     final filter = ref.watch(filterProvider);
     final mapAsync = ref.watch(mapRestaurantsProvider);
     final restaurants = mapAsync.valueOrNull?.restaurants ?? [];
@@ -247,6 +300,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   : KakaoMap(
                       onMapCreated: (c) => _mapController = c,
                       onMarkerTap: _onMarkerTap,
+                      onMapTap: _onMapTap,
                       onCameraIdle: _onCameraIdle,
                       center: LatLng(_kDefaultLat, _kDefaultLng),
                       currentLevel: 8,
@@ -309,117 +363,149 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
 
           // ── 하단 드래그 패널 ──────────────────────────────
-          DraggableScrollableSheet(
-            initialChildSize: 0.38,
-            minChildSize: 0.12,
-            maxChildSize: 0.88,
-            snap: true,
-            snapSizes: const [0.38],
-            builder: (ctx, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x1A000000),
-                      blurRadius: 16,
-                      offset: Offset(0, -4),
-                    )
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // 핸들
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 6),
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDDDDDD),
-                          borderRadius: BorderRadius.circular(2),
+          NotificationListener<DraggableScrollableNotification>(
+            onNotification: (notification) {
+              if (_selectedRestaurant != null &&
+                  !_navigatingToDetail &&
+                  notification.extent >= 0.75) {
+                _goToDetail(_selectedRestaurant!);
+              }
+              return false;
+            },
+            child: DraggableScrollableSheet(
+              controller: _sheetController,
+              initialChildSize: 0.38,
+              minChildSize: 0.12,
+              maxChildSize: 0.88,
+              snap: true,
+              snapSizes: const [0.38],
+              builder: (ctx, scrollController) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x1A000000),
+                        blurRadius: 16,
+                        offset: Offset(0, -4),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // 핸들
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12, bottom: 6),
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDDDDDD),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                    ),
 
-                    // 헤더
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                          context.hPad, 6, context.hPad, 10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      // 프리뷰 카드 (마커 선택 시) 또는 목록
+                      if (_selectedRestaurant != null)
+                        RestaurantPreviewCard(
+                          restaurant: _selectedRestaurant!,
+                          onTapDetail: () => _goToDetail(_selectedRestaurant!),
+                          onClose: () {
+                            setState(() => _selectedRestaurant = null);
+                            if (_sheetController.isAttached) {
+                              _sheetController.animateTo(
+                                0.38,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut,
+                              );
+                            }
+                          },
+                        )
+                      else ...[
+                        // 헤더
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(
+                              context.hPad, 6, context.hPad, 10),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                '화성시',
-                                style: TextStyle(
-                                  fontFamily: 'NotoSerifKR',
-                                  fontSize: context.fs(18),
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '화성시',
+                                    style: TextStyle(
+                                      fontFamily: 'NotoSerifKR',
+                                      fontSize: context.fs(18),
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  if (!mapAsync.isLoading &&
+                                      !mapAsync.hasError) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      isOverLimit
+                                          ? '가까운 음식점 $_kMaxDisplayCount개를 표시하고 있어요'
+                                          : restaurants.isEmpty
+                                              ? '주변 음식점을 찾을 수 없어요'
+                                              : '${restaurants.length}개 음식점',
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF999999)),
+                                    ),
+                                  ],
+                                ],
                               ),
-                              if (!mapAsync.isLoading &&
-                                  !mapAsync.hasError) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  isOverLimit
-                                      ? '가까운 음식점 $_kMaxDisplayCount개를 표시하고 있어요'
-                                      : restaurants.isEmpty
-                                          ? '주변 음식점을 찾을 수 없어요'
-                                          : '${restaurants.length}개 음식점',
-                                  style: const TextStyle(
-                                      fontSize: 11, color: Color(0xFF999999)),
-                                ),
-                              ],
+                              _KonapayToggle(
+                                active: filter.isKonapay,
+                                onTap: () => ref
+                                    .read(filterProvider.notifier)
+                                    .update((s) =>
+                                        s.copyWith(isKonapay: !s.isKonapay)),
+                              ),
                             ],
                           ),
-                          _KonapayToggle(
-                            active: filter.isKonapay,
-                            onTap: () => ref
-                                .read(filterProvider.notifier)
-                                .update(
-                                    (s) => s.copyWith(isKonapay: !s.isKonapay)),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
 
-                    const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                        const Divider(height: 1, color: Color(0xFFF0F0F0)),
 
-                    // 음식점 목록
-                    Expanded(
-                      child: mapAsync.isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(
-                                  color: AppColors.primary))
-                          : mapAsync.hasError
-                              ? _ErrorView(
-                                  onRetry: () =>
-                                      ref.invalidate(mapRestaurantsProvider),
-                                )
-                              : restaurants.isEmpty
-                                  ? const _EmptyView()
-                                  : ListView.separated(
-                                      controller: scrollController,
-                                      padding:
-                                          const EdgeInsets.only(bottom: 32),
-                                      itemCount: restaurants.length,
-                                      separatorBuilder: (_, __) =>
-                                          const Divider(
-                                              height: 1,
-                                              color: Color(0xFFF0F0F0)),
-                                      itemBuilder: (_, i) => _MapRestaurantCard(
-                                          restaurant: restaurants[i]),
-                                    ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                        // 음식점 목록
+                        Expanded(
+                          child: mapAsync.isLoading
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                      color: AppColors.primary))
+                              : mapAsync.hasError
+                                  ? _ErrorView(
+                                      onRetry: () => ref
+                                          .invalidate(mapRestaurantsProvider),
+                                    )
+                                  : restaurants.isEmpty
+                                      ? const _EmptyView()
+                                      : ListView.separated(
+                                          controller: scrollController,
+                                          padding: const EdgeInsets.only(
+                                              bottom: 32),
+                                          itemCount: restaurants.length,
+                                          separatorBuilder: (_, __) =>
+                                              const Divider(
+                                                  height: 1,
+                                                  color: Color(0xFFF0F0F0)),
+                                          itemBuilder: (_, i) =>
+                                              _MapRestaurantCard(
+                                                  restaurant: restaurants[i]),
+                                        ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
 
           // ── 상단 오버레이 ──────────────────────────────────
