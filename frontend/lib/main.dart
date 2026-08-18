@@ -11,16 +11,20 @@ import 'services/api_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
+  await dotenv.load(fileName: 'assets/env');
   AuthRepository.initialize(
     appKey: dotenv.env['KAKAO_MAP_KEY']!,
     baseUrl: 'http://localhost',
   );
   final kakaoKey = dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '';
+  final jsKey = dotenv.env['KAKAO_MAP_KEY'] ?? '';
   if (kakaoKey.isEmpty) {
     throw StateError('.env에 KAKAO_NATIVE_APP_KEY가 없습니다. .env.example을 참고하세요.');
   }
-  KakaoSdk.init(nativeAppKey: kakaoKey);
+  KakaoSdk.init(
+    nativeAppKey: kakaoKey,
+    javaScriptAppKey: jsKey,
+  );
 
   final container = ProviderContainer();
 

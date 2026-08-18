@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import '../core/constants.dart';
 import '../services/api_service.dart';
 
 class AuthState {
@@ -187,6 +188,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  void clearError() {
+    state = state.copyWith(clearError: true);
+  }
+
   void refreshPoints(int newPoints) {
     state = state.copyWith(points: newPoints);
   }
@@ -205,7 +210,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (e is DioException) {
       final code = e.response?.statusCode;
       if (code == 409) return '이미 사용중인 이메일이에요.';
-      if (code == 401) return '이메일 또는 비밀번호가 틀렸어요.';
+      if (code == 401) {
+        if (e.requestOptions.path == ApiConstants.kakaoLogin) {
+          return '카카오 인증에 실패했어요.';
+        }
+        return '이메일 또는 비밀번호가 틀렸어요.';
+      }
       if (code == 429) return '잠시 후 다시 시도해 주세요.';
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout) {

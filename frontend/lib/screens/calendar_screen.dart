@@ -33,11 +33,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return events.where((e) => e.containsDate(date)).toList();
   }
 
-  List<SeasonalEvent> _upcomingEvents(List<SeasonalEvent> events) {
-    final today = DateTime(_today.year, _today.month, _today.day);
+  List<SeasonalEvent> _eventsForFocusedMonth(List<SeasonalEvent> events) {
+    final startOfMonth = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+    final endOfMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0, 23, 59, 59);
     return events
-        .where((e) => !DateTime(e.endDate.year, e.endDate.month, e.endDate.day)
-            .isBefore(today))
+        .where((e) => !(e.endDate.isBefore(startOfMonth) || e.startDate.isAfter(endOfMonth)))
         .toList()
       ..sort((a, b) => a.startDate.compareTo(b.startDate));
   }
@@ -59,7 +59,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Widget _buildBody(List<SeasonalEvent> events) {
-    final upcoming = _upcomingEvents(events);
+    final monthEvents = _eventsForFocusedMonth(events);
 
     return CustomScrollView(
       slivers: [
@@ -176,12 +176,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
         ),
 
-        // 다가오는 먹거리 일정
+        // 선택 월의 먹거리 일정
         SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(context.hPad, 24, context.hPad, 12),
-            child: const Text('다가오는 먹거리 일정',
-                style: TextStyle(
+            child: Text('${_focusedMonth.month}월 먹거리 일정',
+                style: const TextStyle(
                     fontFamily: 'NotoSerifKR',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
@@ -189,13 +189,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
         ),
 
-        if (upcoming.isEmpty)
+        if (monthEvents.isEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding:
                   EdgeInsets.symmetric(horizontal: context.hPad, vertical: 16),
-              child: const Text('다가오는 일정이 없어요',
-                  style: TextStyle(fontSize: 13, color: Colors.grey)),
+              child: Text('${_focusedMonth.month}월 일정이 없어요',
+                  style: const TextStyle(fontSize: 13, color: Colors.grey)),
             ),
           )
         else
@@ -204,7 +204,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, i) {
-                  final event = upcoming[i];
+                  final event = monthEvents[i];
                   final color = event.isFestival
                       ? AppColors.markerFestival
                       : AppColors.markerSeasonal;
@@ -285,7 +285,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     ),
                   );
                 },
-                childCount: upcoming.length,
+                childCount: monthEvents.length,
               ),
             ),
           ),

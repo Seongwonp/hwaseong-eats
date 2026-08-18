@@ -20,6 +20,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   bool _agreed = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authProvider.notifier).clearError();
+    });
+  }
+
+  @override
   void dispose() {
     _emailCtrl.dispose();
     _pwCtrl.dispose();

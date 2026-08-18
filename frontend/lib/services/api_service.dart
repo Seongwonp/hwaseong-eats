@@ -15,6 +15,8 @@ class ApiService {
     headers: {'Content-Type': 'application/json'},
   ));
 
+  Dio get dio => _dio;
+
   final _storage = const FlutterSecureStorage();
 
   // 토큰 만료(401) 시 호출할 콜백 — main.dart에서 logout()으로 연결

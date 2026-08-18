@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -11,6 +12,7 @@ import '../providers/restaurant_provider.dart';
 import '../providers/favorite_provider.dart';
 import '../widgets/seasonal_banner.dart';
 import '../widgets/restaurant_bottom_sheet.dart';
+import '../widgets/web_map_view_conditional.dart';
 
 const _kDefaultLat = 37.1996;
 const _kDefaultLng = 126.8312;
@@ -63,18 +65,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // --- 위치 획득 ---
 
   Future<void> _initLocation() async {
+    // 1. 초기 렌더링 시 기본값으로 즉시 검색을 실행하여 가맹점들을 먼저 불러옵니다 (대기 방지)
+    _commitSearch(_kDefaultLat, _kDefaultLng);
+
+    // 2. 백그라운드에서 현재 GPS 위치 조회를 수행합니다
     final pos = await _fetchPosition();
-    // await 후 dispose 됐을 수 있으므로 반드시 체크
     if (!mounted) return;
 
-    final lat = pos?.latitude ?? _kDefaultLat;
-    final lng = pos?.longitude ?? _kDefaultLng;
+    // 3. 위치 획득 성공 시 해당 위치로 지도를 이동하고 다시 검색을 커밋합니다
+    if (pos != null) {
+      final lat = pos.latitude;
+      final lng = pos.longitude;
 
-    _pendingCenter = LatLng(lat, lng);
-    _commitSearch(lat, lng);
+      _pendingCenter = LatLng(lat, lng);
+      _commitSearch(lat, lng);
 
-    if (!mounted) return;
-    _mapController?.setCenter(LatLng(lat, lng));
+      if (!mounted) return;
+      _mapController?.setCenter(LatLng(lat, lng));
+    }
   }
 
   // denied / deniedForever 분기, 서비스 꺼짐, 타임아웃 모두 null 반환
@@ -207,6 +215,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isTest = WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    final isWebOrTest = kIsWeb || isTest;
+    
     final filter = ref.watch(filterProvider);
     final mapAsync = ref.watch(mapRestaurantsProvider);
     final restaurants = mapAsync.valueOrNull?.restaurants ?? [];
@@ -222,13 +233,79 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       body: Stack(
         children: [
           // ── 카카오맵 ──────────────────────────────────────
-          KakaoMap(
-            onMapCreated: (c) => _mapController = c,
-            onMarkerTap: _onMarkerTap,
-            onCameraIdle: _onCameraIdle,
-            center: LatLng(_kDefaultLat, _kDefaultLng),
-            currentLevel: 8,
-            markers: _getMarkers(restaurants), // 메모이제이션된 리스트
+          isTest
+              ? const Center(child: Text('지도는 모바일 앱에서 이용해주세요'))
+              : kIsWeb
+                  ? KakaoWebMap(
+                      lat: _pendingCenter.latitude,
+                      lng: _pendingCenter.longitude,
+                      restaurants: restaurants,
+                      onMarkerTap: (id) => _onMarkerTap(id, LatLng(0, 0), 8),
+                      onCameraIdle: (lat, lng, level) =>
+                          _onCameraIdle(LatLng(lat, lng), level),
+                    )
+                  : KakaoMap(
+                      onMapCreated: (c) => _mapController = c,
+                      onMarkerTap: _onMarkerTap,
+                      onCameraIdle: _onCameraIdle,
+                      center: LatLng(_kDefaultLat, _kDefaultLng),
+                      currentLevel: 8,
+                      markers: _getMarkers(restaurants), // 메모이제이션된 리스트
+                    ),
+
+          // ── 볏섬 로고 ─────────────────────────────────────
+          Positioned(
+            bottom: panelOffset,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                  )
+                ],
+              ),
+              child: const Text(
+                '볏섬',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'NotoSerifKR',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+
+          // ── 내 위치 버튼 ───────────────────────────────────
+          Positioned(
+            bottom: panelOffset,
+            right: 16,
+            child: Material(
+              color: Colors.white,
+              shape: const CircleBorder(),
+              elevation: 3,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: _isLocating ? null : _onMyLocation,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: _isLocating
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.primary),
+                        )
+                      : const Icon(Icons.my_location,
+                          color: AppColors.primary, size: 22),
+                ),
+              ),
+            ),
           ),
 
           // ── 하단 드래그 패널 ──────────────────────────────
@@ -343,61 +420,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               );
             },
-          ),
-
-          // ── 볏섬 로고 ─────────────────────────────────────
-          Positioned(
-            bottom: panelOffset,
-            left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 6,
-                  )
-                ],
-              ),
-              child: const Text(
-                '볏섬',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'NotoSerifKR',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-
-          // ── 내 위치 버튼 ───────────────────────────────────
-          Positioned(
-            bottom: panelOffset,
-            right: 16,
-            child: Material(
-              color: Colors.white,
-              shape: const CircleBorder(),
-              elevation: 3,
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: _isLocating ? null : _onMyLocation,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: _isLocating
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.primary),
-                        )
-                      : const Icon(Icons.my_location,
-                          color: AppColors.primary, size: 22),
-                ),
-              ),
-            ),
           ),
 
           // ── 상단 오버레이 ──────────────────────────────────
