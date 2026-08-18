@@ -121,7 +121,7 @@ class NotificationScreen extends ConsumerWidget {
         verifyOnTap = () => context.push('/verify');
       } else {
         verifyTitle = '아직 화성 주민 인증을 하지 않으셨어요.';
-        verifyBody = '주민 인증을 완료하면 식사평 포인트를 2배로 적립받을 수 있어요!';
+        verifyBody = '주민 인증을 완료하면 화성인증 식사평 작성 시 500P를 적립받을 수 있어요!';
         verifyUnread = true;
         verifyHasAction = true;
         verifyActionLabel = '인증하기';
@@ -129,7 +129,7 @@ class NotificationScreen extends ConsumerWidget {
       }
     } else {
       verifyTitle = '화성 시민이신가요?';
-      verifyBody = '주민 인증 시 식사평 포인트 적립 2배 등 다양한 리워드를 누려보세요!';
+      verifyBody = '주민 인증 시 화성인증 식사평으로 포인트를 적립받는 등 다양한 리워드를 누려보세요!';
       verifyUnread = false;
       verifyHasAction = true;
       verifyActionLabel = '알아보기';
