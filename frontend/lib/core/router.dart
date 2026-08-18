@@ -13,6 +13,8 @@ import '../screens/keyword_recommendations_screen.dart';
 import '../screens/saved_restaurants_screen.dart';
 import '../screens/my_reviews_screen.dart';
 import '../screens/privacy_policy_screen.dart';
+import '../screens/location_terms_screen.dart';
+import '../screens/data_license_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -76,5 +78,11 @@ final router = GoRouter(
     GoRoute(
         path: '/privacy-policy',
         builder: (_, __) => const PrivacyPolicyScreen()),
+    GoRoute(
+        path: '/location-terms',
+        builder: (_, __) => const LocationTermsScreen()),
+    GoRoute(
+        path: '/data-license',
+        builder: (_, __) => const DataLicenseScreen()),
   ],
 );

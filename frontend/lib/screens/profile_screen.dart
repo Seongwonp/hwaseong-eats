@@ -211,12 +211,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _Divider(),
                     _NavRow(
                       label: '위치정보 이용약관',
-                      onTap: () => _showSnack('위치정보 이용약관'),
+                      onTap: () => context.push('/location-terms'),
                     ),
                     _Divider(),
                     _NavRow(
                       label: '데이터 출처 및 라이선스',
-                      onTap: () => _showSnack('데이터 출처 및 라이선스'),
+                      onTap: () => context.push('/data-license'),
                     ),
                   ],
                 ),
