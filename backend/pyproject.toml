@@ -16,6 +16,7 @@ dependencies = [
     "slowapi>=0.1.10",
     "pyjwt>=2.13.0",
     "email-validator>=2.3.0",
+    "pyproj>=3.6.0",
 ]
 
 [build-system]
