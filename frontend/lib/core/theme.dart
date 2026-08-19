@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // 브랜드 컬러
-  static const primary = Color(0xFFFF4F00);   // 화성 오렌지
+  static const primary = Color(0xFFFF4F00); // 화성 오렌지
   static const background = Color(0xFFFFFEFB); // 웜 크림
   static const textPrimary = Color(0xFF201515); // 커피 잉크
 
   // 지도 마커
-  static const markerDefault = Color(0xFF4A90D9);  // 파랑 - 일반
-  static const markerPay = Color(0xFF4CAF50);       // 초록 - 화성페이
-  static const markerSeasonal = Color(0xFFFF4F00);  // 빨강 - 절기
-  static const markerFestival = Color(0xFF9C27B0);  // 보라 - 축제
+  static const markerDefault = Color(0xFF4A90D9); // 파랑 - 일반
+  static const markerPay = Color(0xFF4CAF50); // 초록 - 화성페이
+  static const markerSeasonal = Color(0xFFFF4F00); // 빨강 - 절기
+  static const markerFestival = Color(0xFF9C27B0); // 보라 - 축제
 }
 
 class AppTheme {
@@ -34,7 +34,7 @@ class AppTheme {
             color: AppColors.textPrimary,
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: AppColors.background,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

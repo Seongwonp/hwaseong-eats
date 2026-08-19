@@ -1,4 +1,5 @@
 name: hwaseong_eats
+publish_to: none
 description: 볏섬 - 화성시 공공데이터 기반 지역 먹거리 지도 플랫폼
 version: 1.0.0+1
 
@@ -19,13 +20,26 @@ dependencies:
   go_router: ^13.0.0
 
   # 카카오맵
-  kakao_map_plugin: ^0.4.0
+  kakao_map_plugin:
+    path: vendor/kakao_map_plugin
 
   # 환경변수
   flutter_dotenv: ^5.1.0
 
+  # 토큰 저장 (암호화)
+  flutter_secure_storage: ^9.0.0
+
+  # 즐겨찾기 로컬 저장
+  shared_preferences: ^2.2.0
+
   # 폰트
   google_fonts: ^6.2.1
+
+  # 위치
+  geolocator: ^13.0.2
+
+  # 카카오 로그인
+  kakao_flutter_sdk_user: ^1.9.0
 
 dev_dependencies:
   flutter_test:
@@ -36,7 +50,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - .env
+    - assets/env
+    - assets/images/
 
   fonts:
     - family: NotoSerifKR

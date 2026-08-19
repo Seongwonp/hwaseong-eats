@@ -1,12 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:kakao_map_plugin/kakao_map_plugin.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'core/theme.dart';
+import 'core/router.dart';
+import 'providers/auth_provider.dart';
+import 'providers/favorite_provider.dart';
+import 'services/api_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
-  runApp(const ProviderScope(child: HwaseongEatsApp()));
+  await dotenv.load(fileName: 'assets/env');
+  AuthRepository.initialize(
+    appKey: dotenv.env['KAKAO_MAP_KEY']!,
+    baseUrl: 'http://localhost',
+  );
+  final kakaoKey = dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '';
+  final jsKey = dotenv.env['KAKAO_MAP_KEY'] ?? '';
+  if (kakaoKey.isEmpty) {
+    throw StateError('.env에 KAKAO_NATIVE_APP_KEY가 없습니다. .env.example을 참고하세요.');
+  }
+  KakaoSdk.init(
+    nativeAppKey: kakaoKey,
+    javaScriptAppKey: jsKey,
+  );
+
+  final container = ProviderContainer();
+
+  // 저장된 JWT 토큰 복원 + 401 시 자동 로그아웃 연결
+  await ApiService().initialize();
+  ApiService().onUnauthorized = () =>
+      container.read(authProvider.notifier).logout();
+
+  await container.read(favoriteProvider.notifier).initialize();
+  await container.read(authProvider.notifier).tryAutoLogin();
+
+  runApp(UncontrolledProviderScope(
+      container: container, child: const HwaseongEatsApp()));
 }
 
 class HwaseongEatsApp extends StatelessWidget {
@@ -14,13 +45,11 @@ class HwaseongEatsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: '볏섬',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
-      home: const Scaffold(
-        body: Center(child: Text('볏섬')),
-      ),
+      routerConfig: router,
     );
   }
 }
