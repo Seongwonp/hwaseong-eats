@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Search, Navigation } from 'lucide-react'
 import { api } from '../api'
 
-const DEFAULT_LAT = 37.1996
-const DEFAULT_LNG = 126.8312
+const DEFAULT_LAT = 37.1964  // 화성시청
+const DEFAULT_LNG = 126.8317
 const RADIUS_KM = 2.0
 const MAX_DISPLAY = 30
 
@@ -53,7 +53,7 @@ export default function MapPage() {
       window.kakao.maps.load(() => {
       const map = new window.kakao.maps.Map(mapRef.current, {
         center: new window.kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG),
-        level: 8,
+        level: 5,
       })
       mapInst.current = map
 
