@@ -48,15 +48,12 @@ export default function SignupPage() {
     setKakaoLoading(true)
     try {
       await loadKakaoSDK()
-      const accessToken = await new Promise((resolve, reject) => {
-        window.Kakao.Auth.login({ success: (a) => resolve(a.access_token), fail: reject })
+      window.Kakao.Auth.authorize({
+        redirectUri: 'https://seongwonp.github.io/hwaseong-eats/kakao-callback.html',
+        responseType: 'token',
       })
-      const data = await api.auth.kakaoLogin(accessToken)
-      localStorage.setItem('token', data.access_token)
-      navigate('/home', { replace: true })
     } catch (e) {
-      setError(e?.error_description || e?.detail || JSON.stringify(e) || '카카오 로그인에 실패했어요')
-    } finally {
+      setError('카카오 로그인을 시작할 수 없어요')
       setKakaoLoading(false)
     }
   }
