@@ -17,6 +17,7 @@ export default function MapPage() {
   const [restaurants, setRestaurants] = useState([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(null)
   const [selected, setSelected] = useState(null)
   const [isKonapay, setIsKonapay] = useState(false)
   const [category, setCategory] = useState(null)
@@ -30,17 +31,21 @@ export default function MapPage() {
 
   const fetchRestaurants = useCallback(async (lat, lng, konapay, cat) => {
     setLoading(true)
+    setFetchError(null)
     try {
       const data = await api.restaurants.list({
         lat, lng,
         radius_km: RADIUS_KM,
         limit: MAX_DISPLAY,
-        food_only: false,
         ...(konapay ? { is_konapay: true } : {}),
         ...(cat ? { category: cat } : {}),
       })
       setRestaurants(data.items || [])
       setTotal(data.total || 0)
+    } catch (e) {
+      console.error('식당 목록 오류:', e)
+      setFetchError(e?.detail || '서버 연결에 실패했어요. 잠시 후 다시 시도해주세요.')
+      setRestaurants([])
     } finally {
       setLoading(false)
     }
@@ -338,6 +343,14 @@ export default function MapPage() {
               {loading ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 80 }}>
                   <SpinnerSmall />
+                </div>
+              ) : fetchError ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 100, gap: 10, padding: '0 16px' }}>
+                  <p style={{ color: '#e53e3e', fontSize: 13, textAlign: 'center' }}>{fetchError}</p>
+                  <button onClick={() => fetchRestaurants(center.lat, center.lng, isKonapay, category)}
+                    style={{ background: '#FF4F00', color: '#fff', border: 'none', borderRadius: 20, padding: '6px 16px', fontSize: 13, cursor: 'pointer' }}>
+                    다시 시도
+                  </button>
                 </div>
               ) : restaurants.length === 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 80 }}>
