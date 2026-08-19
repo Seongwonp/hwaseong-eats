@@ -367,7 +367,11 @@ function MapRestaurantRow({ restaurant: r, onTap }) {
     <button onClick={onTap} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center', textAlign: 'left' }}>
       <div style={{ width: 48, height: 48, borderRadius: 10, background: 'rgba(255,79,0,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>🍴</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontFamily: '"Noto Serif KR"', fontSize: 14, fontWeight: 700, color: '#201515', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <p style={{ fontFamily: '"Noto Serif KR"', fontSize: 14, fontWeight: 700, color: '#201515', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</p>
+          {r.is_konapay && <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: '#4CAF50', background: '#4CAF501a', borderRadius: 6, padding: '2px 6px' }}>💳 화성페이</span>}
+          {r.is_mobeom && <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: '#2196F3', background: '#2196F31a', borderRadius: 6, padding: '2px 6px' }}>🏆 모범</span>}
+        </div>
         <p style={{ fontSize: 11, color: '#999', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.category ? `${r.category} · ${r.address}` : r.address}</p>
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
