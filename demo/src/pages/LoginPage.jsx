@@ -43,9 +43,7 @@ export default function LoginPage() {
       })
       const data = await api.auth.kakaoLogin(accessToken)
       localStorage.setItem('token', data.access_token)
-      const me = await api.auth.me()
-      // AuthContext에 직접 반영
-      window.location.replace('/home')
+      navigate('/home', { replace: true })
     } catch (e) {
       setError(e?.detail || '카카오 로그인에 실패했어요')
     } finally {

@@ -25,13 +25,10 @@
     <script>
       (function(l) {
         if (l.search[1] === 'p') {
-          var decoded = l.search.slice(1).split('&').map(function(s) {
-            return s.replace(/~and~/g, '&');
-          });
-          window.history.replaceState(null, null,
-            l.pathname.split('/').slice(0, 2).join('/') + (decoded[0]? '/' + decoded[0].slice(1) : '') +
-            (decoded[1] ? '?' + decoded[1] : '') + l.hash
-          );
+          var pairs = l.search.slice(1).split('&');
+          var path = pairs[0] ? pairs[0].replace(/^p=/, '').replace(/~and~/g, '&') : '';
+          var q = pairs[1] ? '?' + pairs[1].replace(/^q=/, '').replace(/~and~/g, '&') : '';
+          window.history.replaceState(null, null, path + q + l.hash);
         }
       }(window.location));
     </script>

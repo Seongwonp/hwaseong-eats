@@ -6,7 +6,7 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <BrowserRouter>
+  <BrowserRouter basename="/hwaseong-eats">
     <AuthProvider>
       <App />
     </AuthProvider>

@@ -53,7 +53,7 @@ export default function SignupPage() {
       })
       const data = await api.auth.kakaoLogin(accessToken)
       localStorage.setItem('token', data.access_token)
-      window.location.replace('/home')
+      navigate('/home', { replace: true })
     } catch (e) {
       setError(e?.detail || '카카오 로그인에 실패했어요')
     } finally {
