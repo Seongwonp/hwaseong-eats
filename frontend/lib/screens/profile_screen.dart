@@ -247,6 +247,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
 
               const SizedBox(height: 32),
+
+              // 화성시 로고
+              Center(
+                child: Column(
+                  children: [
+                    Opacity(
+                      opacity: 0.6,
+                      child: Image.asset(
+                        'assets/images/hwaseong.png',
+                        width: 140,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      '볏섬은 화성시와 함께합니다',
+                      style: TextStyle(fontSize: 11, color: Color(0x55201515)),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
             ],
           ),
         ),

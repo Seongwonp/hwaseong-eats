@@ -149,7 +149,11 @@ export default function ProfilePage() {
         </>
       )}
 
-      <div style={{ height: 32 }} />
+      {/* 화성시 로고 */}
+      <div style={{ marginTop: 12, paddingBottom: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <img src={`${import.meta.env.BASE_URL}hwaseong.png`} alt="화성시" style={{ width: '55%', maxWidth: 180, opacity: 0.6 }} />
+        <p style={{ fontSize: 11, color: 'rgba(32,21,21,0.35)', textAlign: 'center' }}>볏섬은 화성시와 함께합니다</p>
+      </div>
 
       {/* 로그아웃 다이얼로그 */}
       {showLogoutDialog && (
