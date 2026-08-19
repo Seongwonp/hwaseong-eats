@@ -16,6 +16,7 @@ import VerifyPage from './pages/VerifyPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import LocationTermsPage from './pages/LocationTermsPage'
 import DataLicensePage from './pages/DataLicensePage'
+import ReviewPage from './pages/ReviewPage'
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       <Route path="/location-terms" element={<LocationTermsPage />} />
       <Route path="/data-license" element={<DataLicensePage />} />
+      <Route path="/review/:id" element={<ReviewPage />} />
       <Route element={<Layout />}>
         <Route path="/map" element={<MapPage />} />
         <Route path="/calendar" element={<CalendarPage />} />

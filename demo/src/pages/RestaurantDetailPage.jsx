@@ -6,6 +6,57 @@ import { isFavorite, toggleFavorite } from './SavedRestaurantsPage'
 
 const TABS = ['개요', '사진', '리뷰', '정보']
 
+const CATEGORY_PHOTOS = {
+  restaurant: [
+    'photo-0u5jeQDvdoY', // shabu-shabu hot pot
+    'photo-CK6YDmlxgb4', // chopsticks over food
+    'photo-QcfJl9QQbWk', // table with varied dishes
+    'photo-xk3er6C7oWM', // grill with food
+    'photo-Ce-7KN5AkcY',  // table multiple food items
+    'photo-KAiKUfmTh3A',  // bowl with assorted foods
+  ],
+  cafe: [
+    'photo-Tyx-fif6mXw',
+    'photo-67EZZZl6jeI',
+    'photo-wQUD2xYXCqo',
+    'photo-Z1Y8kWBe6C8',
+    'photo-dBl6dnIIJeY',
+    'photo-jvxzmp8A4KE',
+  ],
+  convenience: [
+    'photo-PrqlDA95v3s', // GS25 convenience store
+    'photo-Nl5wErrZLmM', // 7-Eleven at night
+    'photo-JW4TGXeENLg', // storefront
+    'photo-mDlLBVU5-Ps', // building facade with shops
+  ],
+  mart: [
+    'photo-zN_3mx64_bk', // woman shopping
+    'photo-aWm7fAUNPEc', // grocery store
+    'photo-1a6qcEH-2ZY', // man with basket
+    'photo-IX4f4WlAXBw', // store front
+  ],
+}
+
+function getPhotoCategory(category) {
+  if (!category) return 'restaurant'
+  if (category.includes('카페') || category.includes('디저트') || category.includes('베이커리')) return 'cafe'
+  if (category.includes('편의점')) return 'convenience'
+  if (category.includes('마트') || category.includes('슈퍼') || category.includes('할인점')) return 'mart'
+  return 'restaurant'
+}
+
+function photoUrl(id) {
+  return `https://images.unsplash.com/${id}?w=400&q=80&auto=format&fit=crop`
+}
+
+const MOCK_REVIEWS = [
+  { id: 9001, nickname: '화성맛집탐방', rating: 5, tags: ['가성비', '혼밥'], comment: '혼밥하기 딱 좋아요! 국물이 진하고 양도 넉넉해요. 직원분들도 친절하셨어요.', is_hwaseong_certified: true, created_at: '2026-07-22T12:30:00' },
+  { id: 9002, nickname: '동탄주민이', rating: 4, tags: ['가성비'], comment: '가격 대비 맛이 좋아요. 점심 특선도 있어서 자주 올 것 같아요.', is_hwaseong_certified: false, created_at: '2026-07-15T19:05:00' },
+  { id: 9003, nickname: '남양읍청년', rating: 5, tags: ['10대 픽'], comment: '친구들이랑 자주 오는 곳! 분위기도 좋고 맛도 정말 있어요.', is_hwaseong_certified: true, created_at: '2026-06-30T13:20:00' },
+  { id: 9004, nickname: '볏섬유저', rating: 3, tags: ['혼밥'], comment: null, is_hwaseong_certified: false, created_at: '2026-06-10T18:45:00' },
+  { id: 9005, nickname: '화성카공러', rating: 4, tags: ['카공족', '가성비'], comment: '카공하기 좋아요. 음료도 맛있고 조용한 편이에요.', is_hwaseong_certified: true, created_at: '2026-05-28T10:15:00' },
+]
+
 export default function RestaurantDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -15,7 +66,7 @@ export default function RestaurantDetailPage() {
   const [restaurant, setRestaurant] = useState(state?.restaurant || null)
   const [reviews, setReviews] = useState([])
   const [reviewTotal, setReviewTotal] = useState(0)
-  const [tab, setTab] = useState(0)
+  const [tab, setTab] = useState(() => state?.reviewTab ? 2 : 0)
   const [loading, setLoading] = useState(!state?.restaurant)
   const [reviewLoading, setReviewLoading] = useState(true)
   const [selectedTag, setSelectedTag] = useState(null)
@@ -26,9 +77,18 @@ export default function RestaurantDetailPage() {
       api.restaurants.get(id).then(setRestaurant).catch(() => {}).finally(() => setLoading(false))
     }
     api.reviews.list(id).then(data => {
-      setReviews(data.items || [])
-      setReviewTotal(data.total || 0)
-    }).catch(() => {}).finally(() => setReviewLoading(false))
+      const items = data.items || []
+      if (items.length === 0) {
+        setReviews(MOCK_REVIEWS)
+        setReviewTotal(MOCK_REVIEWS.length)
+      } else {
+        setReviews(items)
+        setReviewTotal(data.total || items.length)
+      }
+    }).catch(() => {
+      setReviews(MOCK_REVIEWS)
+      setReviewTotal(MOCK_REVIEWS.length)
+    }).finally(() => setReviewLoading(false))
   }, [id, restaurant])
 
   const copy = (text, label) => {
@@ -137,9 +197,22 @@ export default function RestaurantDetailPage() {
         )}
 
         {tab === 1 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 16px', gap: 12 }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <p style={{ fontSize: 14, color: '#aaa' }}>등록된 사진이 없어요.</p>
+          <div style={{ padding: '12px 12px 32px' }}>
+            <p style={{ fontSize: 11, color: '#bbb', textAlign: 'center', marginBottom: 12 }}>음식점 사진 예시 (볏섬 팀 제공)</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              {CATEGORY_PHOTOS[getPhotoCategory(restaurant.category)].map((photoId, i) => (
+                <img
+                  key={photoId}
+                  src={photoUrl(photoId)}
+                  alt={`가게 사진 ${i + 1}`}
+                  style={{
+                    width: '100%', aspectRatio: '1/1', objectFit: 'cover',
+                    borderRadius: 10, background: '#f0f0f0', display: 'block',
+                  }}
+                  loading="lazy"
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -169,7 +242,10 @@ export default function RestaurantDetailPage() {
               : visibleReviews.map(r => <ReviewCard key={r.id} review={r} />)
             }
             {isLoggedIn && (
-              <button style={{ ...btnPrimary, width: '100%', marginTop: 16 }}>식사평 남기기</button>
+              <button
+                onClick={() => navigate(`/review/${id}`, { state: { restaurant } })}
+                style={{ ...btnPrimary, width: '100%', marginTop: 16 }}
+              >식사평 남기기</button>
             )}
           </div>
         )}
