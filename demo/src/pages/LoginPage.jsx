@@ -130,7 +130,7 @@ export default function LoginPage() {
           disabled={kakaoLoading}
           style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: kakaoLoading ? 0.6 : 1 }}
         >
-          <img src="/kakao_login_large_wide.png" alt="카카오로 시작하기" style={{ width: '100%', display: 'block', borderRadius: 12 }} />
+          <img src={`${import.meta.env.BASE_URL}kakao_login_large_wide.png`} alt="카카오로 시작하기" style={{ width: '100%', display: 'block', borderRadius: 12 }} />
         </button>
 
         <div style={{ textAlign: 'center', marginTop: 20 }}>
