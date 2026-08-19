@@ -52,13 +52,19 @@ export default function SignupPage() {
     setKakaoLoading(true)
     try {
       await loadKakaoSDK()
-      window.Kakao.Auth.authorize({
-        redirectUri: 'https://seongwonp.github.io/hwaseong-eats/kakao-callback.html',
-        responseType: 'token',
+      const accessToken = await new Promise((resolve, reject) => {
+        window.Kakao.Auth.login({
+          success: (auth) => resolve(auth.access_token),
+          fail: reject,
+        })
       })
+      const data = await api.auth.kakaoLogin(accessToken)
+      localStorage.setItem('token', data.access_token)
+      navigate('/home', { replace: true })
     } catch (e) {
-      console.error('Kakao authorize error:', e)
-      setError(e?.message || JSON.stringify(e) || '카카오 오류')
+      console.error('Kakao login error:', e)
+      const isEmpty = !e || Object.keys(e).length === 0
+      setError(isEmpty ? '팝업이 차단됐거나 취소됐어요. 브라우저에서 팝업을 허용해주세요.' : (e?.error_description || e?.message || JSON.stringify(e)))
       setKakaoLoading(false)
     }
   }
