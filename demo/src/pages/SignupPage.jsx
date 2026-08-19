@@ -123,13 +123,8 @@ export default function SignupPage() {
         </div>
 
         <button onClick={handleKakaoLogin} disabled={kakaoLoading}
-          style={{
-            width: '100%', height: 48, background: '#FEE500', color: '#191919',
-            border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          }}>
-          <span style={{ fontSize: 20 }}>💬</span>
-          {kakaoLoading ? '로그인 중...' : '카카오로 시작하기'}
+          style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: kakaoLoading ? 0.6 : 1 }}>
+          <img src="/kakao_login_large_wide.png" alt="카카오로 시작하기" style={{ width: '100%', display: 'block', borderRadius: 12 }} />
         </button>
 
         <div style={{ textAlign: 'center', marginTop: 12 }}>
