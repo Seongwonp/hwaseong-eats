@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 처리 중...</title>
+  <style>
+    body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; background: #FFFEFB; font-family: sans-serif; }
+    p { color: #aaa; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <p>카카오 로그인 처리 중...</p>
+  <script>
+    (async function () {
+      var APP = 'https://seongwonp.github.io/hwaseong-eats/'
+      var API = 'https://hwaseong-eats-api.onrender.com'
+
+      // response_type=token → access_token이 URL 해시에 포함됨
+      var params = new URLSearchParams(window.location.hash.slice(1))
+      var accessToken = params.get('access_token')
+
+      if (!accessToken) {
+        window.location.replace(APP + '#/login')
+        return
+      }
+
+      try {
+        var res = await fetch(API + '/auth/kakao', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: accessToken })
+        })
+        if (!res.ok) throw new Error()
+        var data = await res.json()
+        localStorage.setItem('token', data.access_token)
+        window.location.replace(APP + '#/home')
+      } catch (e) {
+        window.location.replace(APP + '#/login')
+      }
+    })()
+  </script>
+</body>
+</html>
