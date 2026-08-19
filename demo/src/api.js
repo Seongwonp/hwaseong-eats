@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || 'https://hwaseong-eats-api.onrender.com'
+const BASE = import.meta.env.VITE_API_URL
 
 const token = () => localStorage.getItem('token')
 

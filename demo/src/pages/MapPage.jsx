@@ -41,9 +41,10 @@ export default function MapPage() {
   }, [])
 
   useEffect(() => {
-    if (!mapRef.current || !window.kakao) return
+    if (!mapRef.current) return
 
-    window.kakao.maps.load(() => {
+    const initMap = () => {
+      window.kakao.maps.load(() => {
       const map = new window.kakao.maps.Map(mapRef.current, {
         center: new window.kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG),
         level: 8,
@@ -78,7 +79,17 @@ export default function MapPage() {
           () => {}
         )
       }
-    })
+      })
+    }
+
+    if (window.kakao?.maps) {
+      initMap()
+    } else {
+      const script = document.createElement('script')
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_MAP_KEY}&libraries=services,clusterer&autoload=false`
+      script.onload = initMap
+      document.head.appendChild(script)
+    }
   }, [fetchRestaurants])
 
   useEffect(() => {
