@@ -37,19 +37,12 @@ export default function LoginPage() {
     setKakaoLoading(true)
     try {
       await loadKakaoSDK()
-      const accessToken = await new Promise((resolve, reject) => {
-        window.Kakao.Auth.login({
-          success: (auth) => resolve(auth.access_token),
-          fail: reject,
-        })
+      window.Kakao.Auth.authorize({
+        redirectUri: 'https://seongwonp.github.io/hwaseong-eats/kakao-callback.html',
       })
-      const data = await api.auth.kakaoLogin(accessToken)
-      localStorage.setItem('token', data.access_token)
-      navigate('/home', { replace: true })
     } catch (e) {
-      console.error('Kakao login error:', e)
-      const isEmpty = !e || Object.keys(e).length === 0
-      setError(isEmpty ? '팝업이 차단됐거나 취소됐어요. 브라우저에서 팝업을 허용해주세요.' : (e?.error_description || e?.message || JSON.stringify(e)))
+      console.error('Kakao authorize error:', e)
+      setError(e?.message || '카카오 로그인 오류')
       setKakaoLoading(false)
     }
   }
