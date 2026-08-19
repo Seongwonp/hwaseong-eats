@@ -5,38 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>로그인 처리 중...</title>
   <style>
-    body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; background: #FFFEFB; font-family: sans-serif; }
-    p { color: #aaa; font-size: 14px; }
+    body { margin: 0; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #FFFEFB; font-family: sans-serif; gap: 12px; }
+    p { color: #aaa; font-size: 14px; margin: 0; }
+    #err { color: #e53e3e; font-size: 12px; display: none; }
   </style>
 </head>
 <body>
   <p>카카오 로그인 처리 중...</p>
+  <p id="err"></p>
   <script>
     (async function () {
       var APP = 'https://seongwonp.github.io/hwaseong-eats/'
       var API = 'https://hwaseong-eats-api.onrender.com'
+      var JS_KEY = '2c8a6b08e7dcae444dbed39d2aab5ee2'
+      var REDIRECT_URI = APP + 'kakao-callback.html'
 
-      // response_type=token → access_token이 URL 해시에 포함됨
-      var params = new URLSearchParams(window.location.hash.slice(1))
-      var accessToken = params.get('access_token')
+      function fail(msg) {
+        document.getElementById('err').style.display = 'block'
+        document.getElementById('err').textContent = msg
+        setTimeout(function() { window.location.replace(APP + '#/login') }, 2000)
+      }
 
-      if (!accessToken) {
-        window.location.replace(APP + '#/login')
+      var params = new URLSearchParams(window.location.search)
+      var code = params.get('code')
+      var error = params.get('error')
+
+      if (error || !code) {
+        fail('카카오 인증 취소: ' + (error || '코드 없음'))
         return
       }
 
       try {
+        // 1. 카카오 authorization code → access_token 교환
+        var tokenRes = await fetch('https://kauth.kakao.com/oauth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: JS_KEY,
+            redirect_uri: REDIRECT_URI,
+            code: code,
+          })
+        })
+        var tokenData = await tokenRes.json()
+
+        if (!tokenData.access_token) {
+          fail('토큰 교환 실패: ' + (tokenData.error_description || JSON.stringify(tokenData)))
+          return
+        }
+
+        // 2. 백엔드 로그인
         var res = await fetch(API + '/auth/kakao', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token: accessToken })
+          body: JSON.stringify({ access_token: tokenData.access_token })
         })
-        if (!res.ok) throw new Error()
+
+        if (!res.ok) {
+          var e = await res.json().catch(function() { return {} })
+          fail('서버 오류: ' + (e.detail || res.status))
+          return
+        }
+
         var data = await res.json()
         localStorage.setItem('token', data.access_token)
         window.location.replace(APP + '#/home')
       } catch (e) {
-        window.location.replace(APP + '#/login')
+        fail('오류: ' + e.message)
       }
     })()
   </script>
