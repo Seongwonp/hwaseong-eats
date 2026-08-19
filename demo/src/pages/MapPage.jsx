@@ -77,19 +77,6 @@ export default function MapPage() {
       })
 
       fetchRestaurants(DEFAULT_LAT, DEFAULT_LNG, false, null)
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          pos => {
-            const lat = pos.coords.latitude
-            const lng = pos.coords.longitude
-            map.setCenter(new window.kakao.maps.LatLng(lat, lng))
-            setCenter({ lat, lng })
-            fetchRestaurants(lat, lng, false, null)
-          },
-          () => {}
-        )
-      }
       })
     }
 
