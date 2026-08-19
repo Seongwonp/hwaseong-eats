@@ -55,7 +55,7 @@ export default function SignupPage() {
       localStorage.setItem('token', data.access_token)
       navigate('/home', { replace: true })
     } catch (e) {
-      setError(e?.detail || '카카오 로그인에 실패했어요')
+      setError(e?.error_description || e?.detail || JSON.stringify(e) || '카카오 로그인에 실패했어요')
     } finally {
       setKakaoLoading(false)
     }

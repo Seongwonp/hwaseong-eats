@@ -22,16 +22,7 @@
       body { font-family: 'Noto Sans KR', sans-serif; }
       ::-webkit-scrollbar { width: 0; }
     </style>
-    <script>
-      (function(l) {
-        if (l.search[1] === 'p') {
-          var pairs = l.search.slice(1).split('&');
-          var path = pairs[0] ? pairs[0].replace(/^p=/, '').replace(/~and~/g, '&') : '';
-          var q = pairs[1] ? '?' + pairs[1].replace(/^q=/, '').replace(/~and~/g, '&') : '';
-          window.history.replaceState(null, null, path + q + l.hash);
-        }
-      }(window.location));
-    </script>
+
   </head>
   <body>
     <div id="root"></div>
