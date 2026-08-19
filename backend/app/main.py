@@ -30,6 +30,9 @@ app.add_middleware(SlowAPIMiddleware)
 #
 # 급하면 CORS_ORIGINS 환경변수로 덮어쓸 수 있다(쉼표 구분, `*` 면 전면 허용).
 _DEFAULT_ORIGINS = [
+    # GitHub Pages 웹 빌드. Origin 에는 경로(/hwaseong-eats/)가 안 들어가므로
+    # 도메인만 적는다. seongwonp 계정의 모든 Pages 가 이 오리진을 쓴다.
+    "https://seongwonp.github.io",
     "https://hwaseong-eats-98716.netlify.app",
     "http://localhost:8080",   # flutter run -d chrome 기본 포트대
     "http://localhost:3000",
