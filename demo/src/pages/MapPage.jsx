@@ -28,6 +28,7 @@ export default function MapPage() {
 
   const CATEGORIES = ['음식점', '카페', '편의점', '대형마트']
   const CAT_ICONS = { '음식점': '🍽', '카페': '☕', '편의점': '🏪', '대형마트': '🛒' }
+  const CAT_GROUP = { '음식점': 'restaurant', '카페': 'cafe', '편의점': 'convenience', '대형마트': 'mart' }
 
   const fetchRestaurants = useCallback(async (lat, lng, konapay, cat) => {
     setLoading(true)
@@ -38,7 +39,7 @@ export default function MapPage() {
         radius_km: RADIUS_KM,
         limit: MAX_DISPLAY,
         ...(konapay ? { is_konapay: true } : {}),
-        ...(cat ? { category: cat } : {}),
+        ...(cat ? { category_group: CAT_GROUP[cat] } : {}),
       })
       setRestaurants(data.items || [])
       setTotal(data.total || 0)
