@@ -5,8 +5,12 @@ import { api } from '../api'
 
 const DEFAULT_LAT = 37.1964  // 화성시청
 const DEFAULT_LNG = 126.8317
-const RADIUS_KM = 2.0
+const RADIUS_KM = 5.0
 const MAX_DISPLAY = 30
+
+const CATEGORIES = ['음식점', '카페', '편의점', '대형마트']
+const CAT_ICONS = { '음식점': '🍽', '카페': '☕', '편의점': '🏪', '대형마트': '🛒' }
+const CAT_GROUP = { '음식점': 'restaurant', '카페': 'cafe', '편의점': 'convenience', '대형마트': 'mart' }
 
 export default function MapPage() {
   const navigate = useNavigate()
@@ -25,10 +29,6 @@ export default function MapPage() {
   const [showSearchHere, setShowSearchHere] = useState(false)
   const [isLocating, setIsLocating] = useState(false)
   const [sheetExpanded, setSheetExpanded] = useState(false)
-
-  const CATEGORIES = ['음식점', '카페', '편의점', '대형마트']
-  const CAT_ICONS = { '음식점': '🍽', '카페': '☕', '편의점': '🏪', '대형마트': '🛒' }
-  const CAT_GROUP = { '음식점': 'restaurant', '카페': 'cafe', '편의점': 'convenience', '대형마트': 'mart' }
 
   const fetchRestaurants = useCallback(async (lat, lng, konapay, cat) => {
     setLoading(true)
