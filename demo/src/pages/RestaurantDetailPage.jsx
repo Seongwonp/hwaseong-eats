@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api'
 
-const TABS = ['개요', '리뷰', '정보']
+const TABS = ['개요', '사진', '리뷰', '정보']
 
 export default function RestaurantDetailPage() {
   const { id } = useParams()
@@ -121,7 +121,7 @@ export default function RestaurantDetailPage() {
               ) : (
                 <>
                   {reviews.slice(0, 2).map(r => <ReviewCard key={r.id} review={r} />)}
-                  <button onClick={() => setTab(1)} style={{ ...btnOutline, width: '100%', marginTop: 8 }}>리뷰 전체 보기 ({reviewTotal})</button>
+                  <button onClick={() => setTab(2)} style={{ ...btnOutline, width: '100%', marginTop: 8 }}>리뷰 전체 보기 ({reviewTotal})</button>
                 </>
               )}
             </div>
@@ -129,6 +129,13 @@ export default function RestaurantDetailPage() {
         )}
 
         {tab === 1 && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 16px', gap: 12 }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <p style={{ fontSize: 14, color: '#aaa' }}>등록된 사진이 없어요.</p>
+          </div>
+        )}
+
+        {tab === 2 && (
           <div style={{ padding: '18px 16px 32px' }}>
             <p style={{ fontSize: 16, fontWeight: 700, color: '#201515', marginBottom: 14 }}>방문자 리뷰 {reviewTotal}</p>
             {Object.keys(tagCounts).length > 0 && (
@@ -159,7 +166,7 @@ export default function RestaurantDetailPage() {
           </div>
         )}
 
-        {tab === 2 && (
+        {tab === 3 && (
           <div style={{ padding: '20px 16px 32px' }}>
             <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>가게 정보</p>
             <InfoRow label="주소" value={restaurant.address} />

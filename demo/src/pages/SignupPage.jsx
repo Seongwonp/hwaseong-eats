@@ -3,22 +3,39 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api'
 
+function loadKakaoSDK() {
+  return new Promise((resolve) => {
+    if (window.Kakao) { resolve(); return }
+    const script = document.createElement('script')
+    script.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js'
+    script.onload = () => {
+      if (!window.Kakao.isInitialized()) window.Kakao.init(import.meta.env.VITE_KAKAO_JS_KEY)
+      resolve()
+    }
+    document.head.appendChild(script)
+  })
+}
+
 export default function SignupPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [form, setForm] = useState({ email: '', password: '', nickname: '' })
+  const [email, setEmail] = useState('')
+  const [pw, setPw] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [showPw, setShowPw] = useState(false)
+  const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [kakaoLoading, setKakaoLoading] = useState(false)
 
-  const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }))
-  const canSubmit = form.email.includes('@') && form.password.length >= 6 && form.nickname.length >= 1
+  const canSubmit = email.includes('@') && pw.length >= 8 && nickname.trim().length >= 2 && agreed
 
   const handleSignup = async () => {
     if (!canSubmit || loading) return
     setLoading(true)
     try {
-      await api.auth.signup(form.email, form.password, form.nickname)
-      await login(form.email, form.password)
+      await api.auth.signup(email, pw, nickname.trim())
+      await login(email, pw)
       navigate('/home', { replace: true })
     } catch (e) {
       setError(e?.detail || '회원가입에 실패했어요')
@@ -27,47 +44,100 @@ export default function SignupPage() {
     }
   }
 
+  const handleKakaoLogin = async () => {
+    setKakaoLoading(true)
+    try {
+      await loadKakaoSDK()
+      const accessToken = await new Promise((resolve, reject) => {
+        window.Kakao.Auth.login({ success: (a) => resolve(a.access_token), fail: reject })
+      })
+      const data = await api.auth.kakaoLogin(accessToken)
+      localStorage.setItem('token', data.access_token)
+      window.location.replace('/home')
+    } catch (e) {
+      setError(e?.detail || '카카오 로그인에 실패했어요')
+    } finally {
+      setKakaoLoading(false)
+    }
+  }
+
   return (
     <div style={{ height: '100vh', background: '#FFFEFB', overflowY: 'auto' }}>
       <div style={{ padding: '0 24px 40px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '16px 0', color: '#201515' }}>
-          ← 뒤로
-        </button>
-        <h1 style={{ fontFamily: '"Noto Serif KR"', fontSize: 22, fontWeight: 700, color: '#201515', marginTop: 8 }}>처음 오셨군요!</h1>
-        <p style={{ fontSize: 13, color: 'rgba(32,21,21,0.5)', marginTop: 4, marginBottom: 36 }}>간단하게 가입하고 시작해요</p>
+        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '16px 0', color: '#201515', fontSize: 20 }}>←</button>
 
-        {[
-          { key: 'email', label: '이메일', type: 'email', placeholder: 'example@email.com' },
-          { key: 'password', label: '비밀번호', type: 'password', placeholder: '6자 이상' },
-          { key: 'nickname', label: '닉네임', type: 'text', placeholder: '화성시민' },
-        ].map(({ key, label, type, placeholder }) => (
-          <div key={key} style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>{label}</label>
-            <input
-              type={type}
-              placeholder={placeholder}
-              value={form[key]}
-              onChange={set(key)}
-              style={inputStyle}
-            />
+        <h1 style={{ fontFamily: '"Noto Serif KR"', fontSize: 22, fontWeight: 700, color: '#201515', marginTop: 8 }}>볏섬에 오신 걸 환영해요</h1>
+        <p style={{ fontSize: 13, color: 'rgba(32,21,21,0.5)', marginTop: 4, marginBottom: 36 }}>닉네임을 설정하고 화성 먹거리 지도를 만들어요</p>
+
+        <label style={labelStyle}>이메일</label>
+        <input type="email" placeholder="example@email.com" value={email}
+          onChange={e => setEmail(e.target.value)} style={inputStyle} />
+
+        <label style={{ ...labelStyle, marginTop: 20 }}>비밀번호</label>
+        <div style={{ position: 'relative' }}>
+          <input type={showPw ? 'text' : 'password'} placeholder="8자 이상" value={pw}
+            onChange={e => setPw(e.target.value)}
+            style={{ ...inputStyle, paddingRight: 44 }} />
+          <button onClick={() => setShowPw(!showPw)}
+            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: 16 }}>
+            {showPw ? '🙈' : '👁'}
+          </button>
+        </div>
+
+        <label style={{ ...labelStyle, marginTop: 20 }}>닉네임</label>
+        <input type="text" placeholder="2~10자 입력" value={nickname} maxLength={10}
+          onChange={e => setNickname(e.target.value)} style={inputStyle} />
+
+        {/* 약관 동의 체크박스 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 24, cursor: 'pointer' }}
+          onClick={() => setAgreed(!agreed)}>
+          <div style={{
+            width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+            background: agreed ? '#FF4F00' : '#fff',
+            border: `1.5px solid ${agreed ? '#FF4F00' : '#ddd'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.15s',
+          }}>
+            {agreed && <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>✓</span>}
           </div>
-        ))}
+          <span style={{ fontSize: 13, color: '#201515' }}>서비스 이용약관 및 개인정보처리방침에 동의합니다</span>
+        </div>
 
-        {error && <p style={{ color: '#e53e3e', fontSize: 13, marginTop: 4 }}>{error}</p>}
+        {error && <p style={{ color: '#e53e3e', fontSize: 13, marginTop: 16 }}>{error}</p>}
 
-        <button
-          onClick={handleSignup}
-          disabled={!canSubmit || loading}
+        <button onClick={handleSignup} disabled={!canSubmit || loading}
           style={{
-            width: '100%', height: 50, marginTop: 20,
+            width: '100%', height: 50, marginTop: 32,
             background: canSubmit ? '#FF4F00' : '#ddd',
             color: '#fff', border: 'none', borderRadius: 12,
             fontFamily: '"Noto Serif KR"', fontSize: 15, fontWeight: 700,
-            cursor: canSubmit ? 'pointer' : 'not-allowed',
-          }}
-        >
-          {loading ? '가입 중...' : '가입하기'}
+            cursor: canSubmit ? 'pointer' : 'not-allowed', transition: 'background 0.2s',
+          }}>
+          {loading ? '가입 중...' : '다음 — 화성주민 인증'}
         </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+          <div style={{ flex: 1, height: 1, background: '#eee' }} />
+          <span style={{ fontSize: 12, color: '#999' }}>또는</span>
+          <div style={{ flex: 1, height: 1, background: '#eee' }} />
+        </div>
+
+        <button onClick={handleKakaoLogin} disabled={kakaoLoading}
+          style={{
+            width: '100%', height: 48, background: '#FEE500', color: '#191919',
+            border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}>
+          <span style={{ fontSize: 20 }}>💬</span>
+          {kakaoLoading ? '로그인 중...' : '카카오로 시작하기'}
+        </button>
+
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <button onClick={() => navigate('/home', { replace: true })}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(32,21,21,0.4)', fontSize: 13 }}>
+            나중에 하기 (지도만 볼게요)
+          </button>
+        </div>
       </div>
     </div>
   )

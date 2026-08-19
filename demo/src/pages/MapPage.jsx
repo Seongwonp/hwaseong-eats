@@ -18,12 +18,16 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [isKonapay, setIsKonapay] = useState(false)
+  const [category, setCategory] = useState(null)
   const [center, setCenter] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG })
   const [showSearchHere, setShowSearchHere] = useState(false)
   const [isLocating, setIsLocating] = useState(false)
   const [sheetExpanded, setSheetExpanded] = useState(false)
 
-  const fetchRestaurants = useCallback(async (lat, lng, konapay) => {
+  const CATEGORIES = ['음식점', '카페', '편의점', '대형마트']
+  const CAT_ICONS = { '음식점': '🍽', '카페': '☕', '편의점': '🏪', '대형마트': '🛒' }
+
+  const fetchRestaurants = useCallback(async (lat, lng, konapay, cat) => {
     setLoading(true)
     try {
       const data = await api.restaurants.list({
@@ -32,6 +36,7 @@ export default function MapPage() {
         limit: MAX_DISPLAY,
         food_only: false,
         ...(konapay ? { is_konapay: true } : {}),
+        ...(cat ? { category: cat } : {}),
       })
       setRestaurants(data.items || [])
       setTotal(data.total || 0)
@@ -65,7 +70,7 @@ export default function MapPage() {
         setSelected(null)
       })
 
-      fetchRestaurants(DEFAULT_LAT, DEFAULT_LNG, false)
+      fetchRestaurants(DEFAULT_LAT, DEFAULT_LNG, false, null)
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -74,7 +79,7 @@ export default function MapPage() {
             const lng = pos.coords.longitude
             map.setCenter(new window.kakao.maps.LatLng(lat, lng))
             setCenter({ lat, lng })
-            fetchRestaurants(lat, lng, false)
+            fetchRestaurants(lat, lng, false, null)
           },
           () => {}
         )
@@ -129,7 +134,7 @@ export default function MapPage() {
   }, [restaurants])
 
   const handleSearchHere = () => {
-    fetchRestaurants(center.lat, center.lng, isKonapay)
+    fetchRestaurants(center.lat, center.lng, isKonapay, category)
     setShowSearchHere(false)
   }
 
@@ -141,7 +146,7 @@ export default function MapPage() {
         const lng = pos.coords.longitude
         mapInst.current?.setCenter(new window.kakao.maps.LatLng(lat, lng))
         setCenter({ lat, lng })
-        fetchRestaurants(lat, lng, isKonapay)
+        fetchRestaurants(lat, lng, isKonapay, category)
         setIsLocating(false)
       },
       () => setIsLocating(false)
@@ -151,7 +156,14 @@ export default function MapPage() {
   const handleKonapayToggle = () => {
     const next = !isKonapay
     setIsKonapay(next)
-    fetchRestaurants(center.lat, center.lng, next)
+    fetchRestaurants(center.lat, center.lng, next, category)
+    setShowSearchHere(false)
+  }
+
+  const handleCategoryToggle = (cat) => {
+    const next = category === cat ? null : cat
+    setCategory(next)
+    fetchRestaurants(center.lat, center.lng, isKonapay, next)
     setShowSearchHere(false)
   }
 
@@ -189,18 +201,45 @@ export default function MapPage() {
           <span style={{ fontSize: 14, color: '#aaa' }}>여기에 검색</span>
         </button>
 
+        {/* 카테고리 칩 */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, overflowX: 'auto', pointerEvents: 'auto', paddingBottom: 2 }}>
+          {CATEGORIES.map(cat => {
+            const sel = category === cat
+            return (
+              <button
+                key={cat}
+                onClick={() => handleCategoryToggle(cat)}
+                style={{
+                  flexShrink: 0,
+                  background: sel ? '#FF4F00' : '#fff',
+                  color: sel ? '#fff' : '#201515',
+                  border: 'none', borderRadius: 20,
+                  padding: '7px 14px',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  transition: 'background 0.18s',
+                }}
+              >
+                <span style={{ fontSize: 14 }}>{CAT_ICONS[cat]}</span>
+                {cat}
+              </button>
+            )
+          })}
+        </div>
+
         {showSearchHere && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10, pointerEvents: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8, pointerEvents: 'auto' }}>
             <button
               onClick={handleSearchHere}
               style={{
-                background: '#fff', border: '1px solid #eee',
+                background: '#FF4F00', border: 'none',
                 borderRadius: 50, padding: '8px 18px',
-                fontSize: 13, fontWeight: 700, color: '#201515',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.12)', cursor: 'pointer',
+                fontSize: 13, fontWeight: 700, color: '#fff',
+                boxShadow: '0 2px 8px rgba(255,79,0,0.3)', cursor: 'pointer',
               }}
             >
-              🔍 이 지역 재검색
+              🔍 이 지역에서 검색
             </button>
           </div>
         )}

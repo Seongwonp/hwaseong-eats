@@ -7,6 +7,8 @@ export default function ProfilePage() {
   const navigate = useNavigate()
   const { user, isLoggedIn, logout } = useAuth()
   const [points, setPoints] = useState(null)
+  const [notifEnabled, setNotifEnabled] = useState(true)
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -16,6 +18,11 @@ export default function ProfilePage() {
     }
   }, [isLoggedIn])
 
+  const formatPoints = (p) => {
+    if (p == null) return '—'
+    return p >= 1000 ? p.toLocaleString() : String(p)
+  }
+
   return (
     <div style={{ height: '100%', overflowY: 'auto', background: '#f5f5f5' }}>
       <div style={{ padding: '20px 16px 16px' }}>
@@ -23,105 +30,163 @@ export default function ProfilePage() {
       </div>
 
       {/* 프로필 카드 */}
-      <Card>
+      <WhiteCard>
         {isLoggedIn ? (
-          <div style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,79,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>👤</div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontFamily: '"Noto Serif KR"', fontSize: 18, fontWeight: 700, color: '#201515' }}>{user?.nickname || '사용자'}</p>
-              <p style={{ fontSize: 13, color: '#888', marginTop: 2 }}>{user?.email}</p>
+          <div style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#FFDED0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#FF4F00"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8V21.6h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
             </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: '#201515' }}>{user?.nickname || '화성 주민'}</p>
+            </div>
+            <button style={btnOutline} onClick={() => {}}>닉네임 변경</button>
           </div>
         ) : (
-          <div style={{ padding: 20 }}>
-            <p style={{ fontSize: 14, color: '#888', marginBottom: 12 }}>로그인하고 더 많은 기능을 이용해보세요</p>
-            <button onClick={() => navigate('/login')} style={btnPrimary}>로그인 / 회원가입</button>
-          </div>
+          <button onClick={() => navigate('/login')} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#bbb"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8V21.6h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            </div>
+            <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: '#201515', textAlign: 'left' }}>로그인 해주세요.</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ccc"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </button>
         )}
-      </Card>
+      </WhiteCard>
 
       {isLoggedIn && (
         <>
           <div style={{ height: 12 }} />
 
           {/* 포인트 카드 */}
-          <Card>
+          <WhiteCard>
             <div style={{ padding: 20, display: 'flex', alignItems: 'center' }}>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#201515' }}>내 포인트</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                  <span style={{ fontSize: 22, color: '#FFBB33' }}>⭐</span>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#FFBB33"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                   <span style={{ fontFamily: '"Noto Serif KR"', fontSize: 26, fontWeight: 700, color: '#FF4F00' }}>
-                    {points != null ? points.toLocaleString() : '—'} P
+                    {formatPoints(points)} P
                   </span>
                 </div>
                 <p style={{ fontSize: 12, color: '#999', marginTop: 2 }}>1,000P부터 교환 가능</p>
               </div>
               <button style={{ ...btnOutline, flexShrink: 0 }}>교환하기</button>
             </div>
-          </Card>
+          </WhiteCard>
 
           <div style={{ height: 12 }} />
+
+          {/* 인증 */}
           <SectionLabel>인증</SectionLabel>
-          <Card>
+          <WhiteCard>
             <div style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,79,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🛡</div>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,79,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#FF4F00"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+              </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: '#201515' }}>화성 시민 인증</p>
-                <p style={{ fontSize: 12, color: user?.is_verified ? '#FF4F00' : '#999', marginTop: 2 }}>
+                <p style={{ fontSize: 12, color: '#999', marginTop: 2 }}>
                   {user?.is_verified ? (user?.expires_at || '인증 완료') : '인증이 필요해요'}
                 </p>
               </div>
-              {!user?.is_verified && (
-                <button style={{ ...btnOutline, flexShrink: 0, fontSize: 12 }}>인증하기</button>
-              )}
+              <button style={{ ...btnOutline, flexShrink: 0, fontSize: 13 }}>
+                {user?.is_verified ? '갱신하기' : '인증하기'}
+              </button>
             </div>
-          </Card>
+          </WhiteCard>
 
           <div style={{ height: 12 }} />
-          <SectionLabel>계정</SectionLabel>
-          <Card>
-            <MenuRow label="내가 남긴 리뷰" icon="📝" />
-            <div style={{ height: 1, background: '#f0f0f0', margin: '0 16px' }} />
-            <MenuRow label="저장된 가게" icon="❤️" />
-            <div style={{ height: 1, background: '#f0f0f0', margin: '0 16px' }} />
-            <MenuRow label="알림 설정" icon="🔔" />
-            <div style={{ height: 1, background: '#f0f0f0', margin: '0 16px' }} />
-            <MenuRow label="로그아웃" icon="🚪" onTap={() => { logout(); navigate('/home') }} textColor="#999" />
-          </Card>
+        </>
+      )}
 
+      {/* 설정 */}
+      <SectionLabel>설정</SectionLabel>
+      <WhiteCard>
+        {isLoggedIn && (
+          <>
+            <NavRow label="내가 쓴 식사평" />
+            <Divider />
+            <NavRow label="저장한 가게" />
+            <Divider />
+          </>
+        )}
+        {/* 알림 토글 */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 16px' }}>
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: '#201515' }}>알림</span>
+          <div
+            onClick={() => setNotifEnabled(!notifEnabled)}
+            style={{
+              width: 44, height: 24, borderRadius: 12, cursor: 'pointer',
+              background: notifEnabled ? '#FF4F00' : '#ddd',
+              position: 'relative', transition: 'background 0.2s',
+            }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: '50%', background: '#fff',
+              position: 'absolute', top: 2, left: notifEnabled ? 22 : 2,
+              transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }} />
+          </div>
+        </div>
+        <Divider />
+        <NavRow label="개인정보 처리방침" />
+        <Divider />
+        <NavRow label="위치정보 이용약관" />
+        <Divider />
+        <NavRow label="데이터 출처 및 라이선스" />
+      </WhiteCard>
+
+      {isLoggedIn && (
+        <>
           <div style={{ height: 12 }} />
-          <SectionLabel>약관</SectionLabel>
-          <Card>
-            <MenuRow label="개인정보처리방침" icon="📄" />
-            <div style={{ height: 1, background: '#f0f0f0', margin: '0 16px' }} />
-            <MenuRow label="이용약관" icon="📋" />
-          </Card>
+          <WhiteCard>
+            <NavRow label="로그아웃" onTap={() => setShowLogoutDialog(true)} />
+          </WhiteCard>
+          <div style={{ height: 16 }} />
+          <div style={{ textAlign: 'center' }}>
+            <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#aaa' }}>
+              회원 탈퇴
+            </button>
+          </div>
         </>
       )}
 
       <div style={{ height: 32 }} />
+
+      {/* 로그아웃 다이얼로그 */}
+      {showLogoutDialog && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 24, width: 280, margin: '0 20px' }}>
+            <p style={{ fontFamily: '"Noto Serif KR"', fontWeight: 700, fontSize: 16, marginBottom: 12, color: '#201515' }}>로그아웃</p>
+            <p style={{ fontSize: 14, color: '#666', marginBottom: 24 }}>로그아웃 하시겠어요?</p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowLogoutDialog(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666', fontSize: 14, padding: '8px 12px' }}>취소</button>
+              <button onClick={() => { setShowLogoutDialog(false); logout(); navigate('/home') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FF4F00', fontSize: 14, fontWeight: 700, padding: '8px 12px' }}>로그아웃</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function Card({ children }) {
-  return <div style={{ background: '#fff', margin: '0 0', borderRadius: 0 }}>{children}</div>
+function WhiteCard({ children }) {
+  return <div style={{ background: '#fff', width: '100%' }}>{children}</div>
 }
 
 function SectionLabel({ children }) {
-  return <p style={{ fontSize: 12, fontWeight: 600, color: '#999', padding: '8px 16px 6px', background: '#f5f5f5' }}>{children}</p>
+  return <p style={{ fontSize: 13, fontWeight: 700, color: '#201515', padding: '0 16px 8px', background: '#f5f5f5' }}>{children}</p>
 }
 
-function MenuRow({ label, icon, onTap, textColor = '#201515' }) {
+function NavRow({ label, onTap }) {
   return (
-    <button onClick={onTap} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
-      <span style={{ flex: 1, fontSize: 14, color: textColor, textAlign: 'left' }}>{label}</span>
-      <span style={{ color: '#ccc', fontSize: 18 }}>›</span>
+    <button onClick={onTap} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 16px', display: 'flex', alignItems: 'center', textAlign: 'left' }}>
+      <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: '#201515' }}>{label}</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(32,21,21,0.3)"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
     </button>
   )
 }
 
-const btnPrimary = { background: '#FF4F00', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 700, padding: '12px 20px', width: '100%', fontFamily: '"Noto Serif KR"' }
-const btnOutline = { background: 'none', border: '1px solid #ddd', borderRadius: 20, cursor: 'pointer', fontSize: 13, color: '#201515', padding: '8px 14px', fontFamily: '"Noto Sans KR"' }
+function Divider() {
+  return <div style={{ height: 1, background: '#f2f2f2', margin: '0 16px' }} />
+}
+
+const btnOutline = { background: 'none', border: '1px solid #ccc', borderRadius: 20, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#201515', padding: '8px 14px' }
