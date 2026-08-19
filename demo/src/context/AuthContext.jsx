@@ -30,8 +30,15 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    const t = localStorage.getItem('token')
+    if (!t) return
+    const me = await api.auth.me()
+    setUser(me)
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, setError, login, logout, isLoggedIn: !!user }}>
+    <AuthContext.Provider value={{ user, loading, error, setError, login, logout, refreshUser, isLoggedIn: !!user }}>
       {children}
     </AuthContext.Provider>
   )

@@ -39,9 +39,20 @@ export const api = {
     }),
     me: () => req(`${BASE}/auth/me`, { headers: h() }),
     points: () => req(`${BASE}/auth/me/points`, { headers: h() }),
+    verify: () => req(`${BASE}/auth/verify`, { method: 'POST', headers: h(true) }),
+    updateNickname: (nickname) => req(`${BASE}/auth/me`, {
+      method: 'PATCH', headers: h(true),
+      body: JSON.stringify({ nickname }),
+    }),
+    exchange: (points) => req(`${BASE}/auth/me/points/exchange`, {
+      method: 'POST', headers: h(true),
+      body: JSON.stringify({ points }),
+    }),
+    deleteAccount: () => req(`${BASE}/auth/me`, { method: 'DELETE', headers: h() }),
   },
   reviews: {
     list: (restaurantId) => req(`${BASE}/reviews?restaurant_id=${restaurantId}`, { headers: h() }),
+    myList: () => req(`${BASE}/reviews/me`, { headers: h() }),
     create: (data) => req(`${BASE}/reviews`, {
       method: 'POST', headers: h(true),
       body: JSON.stringify(data),

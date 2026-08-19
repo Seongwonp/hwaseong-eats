@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api'
+import { isFavorite, toggleFavorite } from './SavedRestaurantsPage'
 
 const TABS = ['개요', '사진', '리뷰', '정보']
 
@@ -18,6 +19,7 @@ export default function RestaurantDetailPage() {
   const [loading, setLoading] = useState(!state?.restaurant)
   const [reviewLoading, setReviewLoading] = useState(true)
   const [selectedTag, setSelectedTag] = useState(null)
+  const [saved, setSaved] = useState(() => isFavorite(Number(id)))
 
   useEffect(() => {
     if (!restaurant) {
@@ -63,7 +65,13 @@ export default function RestaurantDetailPage() {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
       {/* 헤더 */}
       <div style={{ padding: '12px 16px 0', flexShrink: 0 }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#201515', padding: '4px 0' }}>←</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#201515', padding: '4px 0' }}>←</button>
+          <button
+            onClick={() => { toggleFavorite(Number(id)); setSaved(s => !s) }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: saved ? '#FF4F00' : '#ccc', padding: '4px 0' }}
+          >{saved ? '♥' : '♡'}</button>
+        </div>
         <div style={{ padding: '0 0 14px' }}>
           <h1 style={{ fontFamily: '"Noto Serif KR"', fontSize: 22, fontWeight: 700, color: '#201515', marginTop: 4 }}>{restaurant.name}</h1>
           <p style={{ fontSize: 12, color: '#888', marginTop: 5 }}>

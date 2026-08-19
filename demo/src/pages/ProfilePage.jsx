@@ -5,15 +5,20 @@ import { api } from '../api'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { user, isLoggedIn, logout } = useAuth()
+  const { user, isLoggedIn, logout, refreshUser } = useAuth()
   const [points, setPoints] = useState(null)
   const [notifEnabled, setNotifEnabled] = useState(true)
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false)
+  const [showNicknameDialog, setShowNicknameDialog] = useState(false)
+  const [newNickname, setNewNickname] = useState('')
+  const [nicknameLoading, setNicknameLoading] = useState(false)
+  const [nicknameError, setNicknameError] = useState(null)
 
   useEffect(() => {
     if (isLoggedIn) {
       api.auth.points().catch(() => null).then(data => {
-        if (data) setPoints(data.total_points ?? data.points ?? 0)
+        if (data) setPoints(data.balance ?? 0)
       })
     }
   }, [isLoggedIn])
@@ -22,6 +27,38 @@ export default function ProfilePage() {
     if (p == null) return '—'
     return p >= 1000 ? p.toLocaleString() : String(p)
   }
+
+  const handleNicknameChange = async () => {
+    if (!newNickname.trim() || newNickname.trim().length < 2) return
+    setNicknameLoading(true)
+    setNicknameError(null)
+    try {
+      await api.auth.updateNickname(newNickname.trim())
+      await refreshUser()
+      setShowNicknameDialog(false)
+      setNewNickname('')
+    } catch (e) {
+      setNicknameError(e?.detail || '닉네임 변경에 실패했어요')
+    } finally {
+      setNicknameLoading(false)
+    }
+  }
+
+  const handleWithdraw = async () => {
+    try {
+      await api.auth.deleteAccount()
+    } catch (_) {}
+    logout()
+    navigate('/home')
+  }
+
+  const verified = user?.is_resident_verified
+  const expiresText = user?.resident_expires_at
+    ? (() => {
+        const d = new Date(user.resident_expires_at)
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}까지 유효`
+      })()
+    : verified ? '인증 완료' : '인증이 필요해요'
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', background: '#f5f5f5' }}>
@@ -38,8 +75,9 @@ export default function ProfilePage() {
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 16, fontWeight: 700, color: '#201515' }}>{user?.nickname || '화성 주민'}</p>
+              <p style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{user?.email || ''}</p>
             </div>
-            <button style={btnOutline} onClick={() => {}}>닉네임 변경</button>
+            <button style={btnOutline} onClick={() => { setNewNickname(user?.nickname || ''); setShowNicknameDialog(true) }}>닉네임 변경</button>
           </div>
         ) : (
           <button onClick={() => navigate('/login')} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -69,7 +107,7 @@ export default function ProfilePage() {
                 </div>
                 <p style={{ fontSize: 12, color: '#999', marginTop: 2 }}>1,000P부터 교환 가능</p>
               </div>
-              <button style={{ ...btnOutline, flexShrink: 0 }}>교환하기</button>
+              <button style={{ ...btnOutline, flexShrink: 0 }} onClick={() => navigate('/reward')}>교환하기</button>
             </div>
           </WhiteCard>
 
@@ -84,12 +122,10 @@ export default function ProfilePage() {
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: '#201515' }}>화성 시민 인증</p>
-                <p style={{ fontSize: 12, color: '#999', marginTop: 2 }}>
-                  {user?.is_verified ? (user?.expires_at || '인증 완료') : '인증이 필요해요'}
-                </p>
+                <p style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{expiresText}</p>
               </div>
-              <button style={{ ...btnOutline, flexShrink: 0, fontSize: 13 }}>
-                {user?.is_verified ? '갱신하기' : '인증하기'}
+              <button style={{ ...btnOutline, flexShrink: 0, fontSize: 13 }} onClick={() => navigate('/verify')}>
+                {verified ? '갱신하기' : '인증하기'}
               </button>
             </div>
           </WhiteCard>
@@ -103,9 +139,9 @@ export default function ProfilePage() {
       <WhiteCard>
         {isLoggedIn && (
           <>
-            <NavRow label="내가 쓴 식사평" />
+            <NavRow label="내가 쓴 식사평" onTap={() => navigate('/my-reviews')} />
             <Divider />
-            <NavRow label="저장한 가게" />
+            <NavRow label="저장한 가게" onTap={() => navigate('/saved-restaurants')} />
             <Divider />
           </>
         )}
@@ -127,11 +163,11 @@ export default function ProfilePage() {
           </div>
         </div>
         <Divider />
-        <NavRow label="개인정보 처리방침" />
+        <NavRow label="개인정보 처리방침" onTap={() => navigate('/privacy-policy')} />
         <Divider />
-        <NavRow label="위치정보 이용약관" />
+        <NavRow label="위치정보 이용약관" onTap={() => navigate('/location-terms')} />
         <Divider />
-        <NavRow label="데이터 출처 및 라이선스" />
+        <NavRow label="데이터 출처 및 라이선스" onTap={() => navigate('/data-license')} />
       </WhiteCard>
 
       {isLoggedIn && (
@@ -142,7 +178,7 @@ export default function ProfilePage() {
           </WhiteCard>
           <div style={{ height: 16 }} />
           <div style={{ textAlign: 'center' }}>
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#aaa' }}>
+            <button onClick={() => setShowWithdrawDialog(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#aaa' }}>
               회원 탈퇴
             </button>
           </div>
@@ -157,16 +193,47 @@ export default function ProfilePage() {
 
       {/* 로그아웃 다이얼로그 */}
       {showLogoutDialog && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 24, width: 280, margin: '0 20px' }}>
-            <p style={{ fontFamily: '"Noto Serif KR"', fontWeight: 700, fontSize: 16, marginBottom: 12, color: '#201515' }}>로그아웃</p>
-            <p style={{ fontSize: 14, color: '#666', marginBottom: 24 }}>로그아웃 하시겠어요?</p>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowLogoutDialog(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666', fontSize: 14, padding: '8px 12px' }}>취소</button>
-              <button onClick={() => { setShowLogoutDialog(false); logout(); navigate('/home') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FF4F00', fontSize: 14, fontWeight: 700, padding: '8px 12px' }}>로그아웃</button>
-            </div>
+        <Dialog>
+          <p style={dlgTitle}>로그아웃</p>
+          <p style={dlgBody}>로그아웃 하시겠어요?</p>
+          <div style={dlgBtns}>
+            <button onClick={() => setShowLogoutDialog(false)} style={dlgCancel}>취소</button>
+            <button onClick={() => { setShowLogoutDialog(false); logout(); navigate('/home') }} style={dlgConfirm}>로그아웃</button>
           </div>
-        </div>
+        </Dialog>
+      )}
+
+      {/* 회원탈퇴 다이얼로그 */}
+      {showWithdrawDialog && (
+        <Dialog>
+          <p style={dlgTitle}>회원 탈퇴</p>
+          <p style={dlgBody}>탈퇴하면 모든 데이터가<br/>삭제됩니다. 계속할까요?</p>
+          <div style={dlgBtns}>
+            <button onClick={() => setShowWithdrawDialog(false)} style={dlgCancel}>취소</button>
+            <button onClick={() => { setShowWithdrawDialog(false); handleWithdraw() }} style={{ ...dlgConfirm, color: '#e53e3e' }}>탈퇴</button>
+          </div>
+        </Dialog>
+      )}
+
+      {/* 닉네임 변경 다이얼로그 */}
+      {showNicknameDialog && (
+        <Dialog>
+          <p style={dlgTitle}>닉네임 변경</p>
+          <input
+            value={newNickname}
+            onChange={e => setNewNickname(e.target.value)}
+            maxLength={10}
+            placeholder="2~10자 입력"
+            style={{ width: '100%', border: '1px solid #ddd', borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', marginBottom: 4, boxSizing: 'border-box' }}
+          />
+          {nicknameError && <p style={{ color: '#e53e3e', fontSize: 12, marginBottom: 8 }}>{nicknameError}</p>}
+          <div style={{ ...dlgBtns, marginTop: 8 }}>
+            <button onClick={() => { setShowNicknameDialog(false); setNicknameError(null) }} style={dlgCancel}>취소</button>
+            <button onClick={handleNicknameChange} disabled={nicknameLoading || newNickname.trim().length < 2} style={dlgConfirm}>
+              {nicknameLoading ? '변경 중...' : '변경'}
+            </button>
+          </div>
+        </Dialog>
       )}
     </div>
   )
@@ -175,11 +242,9 @@ export default function ProfilePage() {
 function WhiteCard({ children }) {
   return <div style={{ background: '#fff', width: '100%' }}>{children}</div>
 }
-
 function SectionLabel({ children }) {
   return <p style={{ fontSize: 13, fontWeight: 700, color: '#201515', padding: '0 16px 8px', background: '#f5f5f5' }}>{children}</p>
 }
-
 function NavRow({ label, onTap }) {
   return (
     <button onClick={onTap} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 16px', display: 'flex', alignItems: 'center', textAlign: 'left' }}>
@@ -188,9 +253,20 @@ function NavRow({ label, onTap }) {
     </button>
   )
 }
-
 function Divider() {
   return <div style={{ height: 1, background: '#f2f2f2', margin: '0 16px' }} />
 }
+function Dialog({ children }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+      <div style={{ background: '#fff', borderRadius: 16, padding: 24, width: 280, margin: '0 20px' }}>{children}</div>
+    </div>
+  )
+}
 
 const btnOutline = { background: 'none', border: '1px solid #ccc', borderRadius: 20, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#201515', padding: '8px 14px' }
+const dlgTitle = { fontFamily: '"Noto Serif KR"', fontWeight: 700, fontSize: 16, marginBottom: 12, color: '#201515' }
+const dlgBody = { fontSize: 14, color: '#666', marginBottom: 24, lineHeight: 1.6 }
+const dlgBtns = { display: 'flex', gap: 8, justifyContent: 'flex-end' }
+const dlgCancel = { background: 'none', border: 'none', cursor: 'pointer', color: '#666', fontSize: 14, padding: '8px 12px' }
+const dlgConfirm = { background: 'none', border: 'none', cursor: 'pointer', color: '#FF4F00', fontSize: 14, fontWeight: 700, padding: '8px 12px' }
