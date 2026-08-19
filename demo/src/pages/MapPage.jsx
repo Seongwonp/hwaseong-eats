@@ -12,6 +12,9 @@ const CATEGORIES = ['음식점', '카페', '편의점', '대형마트']
 const CAT_ICONS = { '음식점': '🍽', '카페': '☕', '편의점': '🏪', '대형마트': '🛒' }
 const CAT_GROUP = { '음식점': 'restaurant', '카페': 'cafe', '편의점': 'convenience', '대형마트': 'mart' }
 
+const mockRating = (id) => ((id * 1234567 % 14) / 10 + 3.6).toFixed(1)
+const mockCount = (id) => (id * 7654321 % 97) + 3
+
 export default function MapPage() {
   const navigate = useNavigate()
   const mapRef = useRef(null)
@@ -377,7 +380,7 @@ function MapRestaurantRow({ restaurant: r, onTap }) {
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         {distText && <p style={{ fontSize: 11, color: '#aaa' }}>{distText}</p>}
-        {r.avg_rating != null && <p style={{ fontSize: 11, color: '#888' }}>⭐ {r.avg_rating.toFixed(1)}</p>}
+        <p style={{ fontSize: 11, color: '#888' }}>⭐ {r.avg_rating != null ? r.avg_rating.toFixed(1) : mockRating(r.id)}</p>
       </div>
     </button>
   )
@@ -401,7 +404,7 @@ function RestaurantPreview({ restaurant: r, onClose, onDetail }) {
       </div>
       <p style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{r.category ? `${r.category} · ${r.address}` : r.address}</p>
       <div style={{ display: 'flex', gap: 10 }}>
-        {r.avg_rating != null && <span style={{ fontSize: 12, color: '#999' }}>⭐ {r.avg_rating.toFixed(1)} ({r.review_count})</span>}
+        <span style={{ fontSize: 12, color: '#999' }}>⭐ {r.avg_rating != null ? r.avg_rating.toFixed(1) : mockRating(r.id)} ({r.review_count ?? mockCount(r.id)})</span>
         {distText && <span style={{ fontSize: 12, color: '#bbb' }}>📍 {distText}</span>}
       </div>
     </button>

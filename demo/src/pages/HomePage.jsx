@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api'
 
+const mockRating = (id) => ((id * 1234567 % 14) / 10 + 3.6).toFixed(1)
+const mockCount = (id) => (id * 7654321 % 97) + 3
+
 export default function HomePage() {
   const navigate = useNavigate()
   const { isLoggedIn, user } = useAuth()
@@ -146,7 +149,7 @@ function RestaurantCard({ r, tags = [], badge, onTap }) {
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
           {distText && <span style={{ fontSize: 11, color: '#aaa' }}>📍 {distText}</span>}
-          {r.avg_rating != null && <span style={{ fontSize: 11, color: '#888' }}>⭐ {r.avg_rating.toFixed(1)} ({r.review_count})</span>}
+          <span style={{ fontSize: 11, color: '#888' }}>⭐ {r.avg_rating != null ? r.avg_rating.toFixed(1) : mockRating(r.id)} ({r.review_count ?? mockCount(r.id)})</span>
           <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(32,21,21,0.35)', fontWeight: 600 }}>바로가기 &gt;</span>
         </div>
       </div>
