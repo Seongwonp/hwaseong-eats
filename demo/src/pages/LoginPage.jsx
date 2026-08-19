@@ -1,6 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../api'
+
+function loadKakaoSDK() {
+  return new Promise((resolve) => {
+    if (window.Kakao) { resolve(); return }
+    const script = document.createElement('script')
+    script.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js'
+    script.onload = () => {
+      if (!window.Kakao.isInitialized()) {
+        window.Kakao.init(import.meta.env.VITE_KAKAO_JS_KEY)
+      }
+      resolve()
+    }
+    document.head.appendChild(script)
+  })
+}
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -9,8 +25,33 @@ export default function LoginPage() {
   const [pw, setPw] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [kakaoLoading, setKakaoLoading] = useState(false)
+
+  useEffect(() => { loadKakaoSDK() }, [])
 
   const canSubmit = email.includes('@') && pw.length >= 6
+
+  const handleKakaoLogin = async () => {
+    setKakaoLoading(true)
+    try {
+      await loadKakaoSDK()
+      const accessToken = await new Promise((resolve, reject) => {
+        window.Kakao.Auth.login({
+          success: (auth) => resolve(auth.access_token),
+          fail: reject,
+        })
+      })
+      const data = await api.auth.kakaoLogin(accessToken)
+      localStorage.setItem('token', data.access_token)
+      const me = await api.auth.me()
+      // AuthContext에 직접 반영
+      window.location.replace('/home')
+    } catch (e) {
+      setError(e?.detail || '카카오 로그인에 실패했어요')
+    } finally {
+      setKakaoLoading(false)
+    }
+  }
 
   const handleLogin = async () => {
     if (!canSubmit || loading) return
@@ -85,6 +126,8 @@ export default function LoginPage() {
         </div>
 
         <button
+          onClick={handleKakaoLogin}
+          disabled={kakaoLoading}
           style={{
             width: '100%', height: 48,
             background: '#FEE500', color: '#191919',
@@ -93,7 +136,8 @@ export default function LoginPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
-          <span style={{ fontSize: 20 }}>💬</span> 카카오로 시작하기
+          <span style={{ fontSize: 20 }}>💬</span>
+          {kakaoLoading ? '로그인 중...' : '카카오로 시작하기'}
         </button>
 
         <div style={{ textAlign: 'center', marginTop: 20 }}>

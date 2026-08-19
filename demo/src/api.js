@@ -33,6 +33,10 @@ export const api = {
       method: 'POST', headers: h(true),
       body: JSON.stringify({ email, password, nickname }),
     }),
+    kakaoLogin: (access_token) => req(`${BASE}/auth/kakao`, {
+      method: 'POST', headers: h(true),
+      body: JSON.stringify({ access_token }),
+    }),
     me: () => req(`${BASE}/auth/me`, { headers: h() }),
     points: () => req(`${BASE}/auth/me/points`, { headers: h() }),
   },
