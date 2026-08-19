@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -31,3 +31,16 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+    @property
+    def is_resident_active(self) -> bool:
+        """주민인증이 지금도 살아 있는지.
+
+        is_resident_verified 컬럼만 보면 안 된다. 인증은 6개월 유효인데 만료 시 컬럼을
+        되돌리는 배치가 없어서, 만료된 사용자도 계속 True 로 보인다. 응답과 화성인증
+        판정은 이 값을 쓴다.
+        """
+        if not self.is_resident_verified:
+            return False
+        expires = self.resident_expires_at
+        return expires is None or expires >= datetime.now(timezone.utc)

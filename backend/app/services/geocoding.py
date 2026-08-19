@@ -20,7 +20,7 @@ from app.core.constants import (
     FOOD_CATEGORIES,
     GEOCODE_FAILED,
     GEOCODE_OK,
-    GEOCODE_PENDING,
+    GEOCODE_TARGET_STATUSES,
     in_hwaseong,
 )
 from app.core.http import request_with_retry
@@ -83,7 +83,12 @@ def run(limit: int | None = None, food_only: bool = True) -> None:
         raise RuntimeError("KAKAO_API_KEY 가 없습니다. backend/.env 를 확인하세요.")
 
     with SessionLocal() as db:
-        stmt = select(Restaurant).where(Restaurant.geocode_status == GEOCODE_PENDING)
+        # pending 뿐 아니라 failed 도 다시 시도한다. 예전에는 pending 만 봐서 한 번
+        # 실패한 행이 영구히 제외됐다. unverified 는 일부러 뺀다 — 아래 주소 검색
+        # 폴백이 만든 도로 중심점 좌표를 geocode_refine 이 내린 상태라 되돌리면 안 된다.
+        stmt = select(Restaurant).where(
+            Restaurant.geocode_status.in_(GEOCODE_TARGET_STATUSES)
+        )
         if food_only:
             stmt = stmt.where(Restaurant.category.in_(FOOD_CATEGORIES))
         if limit:

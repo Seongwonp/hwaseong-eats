@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 
+from app.core.constants import today_kst
 from app.database import SessionLocal
 from app.main import app
 from app.models import SeasonalEvent
@@ -50,7 +51,7 @@ class TestList:
         assert dates == sorted(dates)
 
     def test_지난_일정_제외(self, client, seeded):
-        today = date.today().isoformat()
+        today = today_kst().isoformat()
         for x in client.get("/festivals", params={"upcoming_only": True}).json()["items"]:
             assert x["end_date"] >= today
 
@@ -58,11 +59,11 @@ class TestList:
 class TestToday:
     def test_응답_형식(self, client, seeded):
         body = client.get("/festivals/today").json()
-        assert body["date"] == date.today().isoformat()
+        assert body["date"] == today_kst().isoformat()
         assert "primary" in body and "items" in body
 
     def test_기념일_전후_3일만_잡힌다(self, client, seeded):
-        today = date.today()
+        today = today_kst()
         for x in client.get("/festivals/today").json()["items"]:
             start = date.fromisoformat(x["start_date"])
             end = date.fromisoformat(x["end_date"])
@@ -81,13 +82,13 @@ class TestToday:
 
 class TestDDay:
     def test_기간_중이면_0(self, client, seeded):
-        today = date.today()
+        today = today_kst()
         for x in client.get("/festivals").json()["items"]:
             if x["start_date"] <= today.isoformat() <= x["end_date"]:
                 assert x["d_day"] == 0
 
     def test_지난_일정은_음수(self, client, seeded):
-        today = date.today().isoformat()
+        today = today_kst().isoformat()
         past = [x for x in client.get("/festivals").json()["items"] if x["end_date"] < today]
         assert all(x["d_day"] < 0 for x in past)
 

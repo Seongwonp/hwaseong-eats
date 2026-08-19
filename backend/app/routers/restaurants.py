@@ -8,10 +8,10 @@ from sqlalchemy.orm import Session
 from app.core.constants import (
     FOOD_CATEGORIES,
     MAP_CATEGORY_GROUPS,
-    VISIBLE_GEOCODE_STATUSES,
 )
 from app.database import get_db
 from app.models import Restaurant, Review
+from app.models.restaurant import visible_filters
 from app.schemas.restaurant import RestaurantListResponse, RestaurantResponse
 
 router = APIRouter()
@@ -21,16 +21,8 @@ KM_PER_LAT_DEG = 111.0
 
 
 def _visible():
-    """지도에 띄울 수 있는 행만 남긴다.
-
-    unverified 는 좌표가 도로 중심점 수준이라 데이터는 남겨두되 조회에서 뺀다.
-    목록과 단건 조회가 같은 기준을 써야 목록에 없는 걸 상세로는 볼 수 있는 일이 안 생긴다.
-    """
-    return (
-        Restaurant.lat.is_not(None),
-        Restaurant.lng.is_not(None),
-        Restaurant.geocode_status.in_(VISIBLE_GEOCODE_STATUSES),
-    )
+    """지도에 띄울 수 있는 행만 남긴다. 기준은 models.restaurant 에 한 벌만 둔다."""
+    return visible_filters()
 
 
 def _escape_like(value: str) -> str:

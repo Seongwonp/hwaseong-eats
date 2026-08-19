@@ -4,6 +4,7 @@ from sqlalchemy import BigInteger, Boolean, DateTime, Float, Index, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.constants import VISIBLE_GEOCODE_STATUSES
 from app.database import Base
 
 
@@ -87,4 +88,17 @@ class Restaurant(Base):
             unique=True,
             postgresql_where=text("konapay_seq IS NULL"),
         ),
+    )
+
+
+def visible_filters():
+    """지도·목록·상세·식사평이 공통으로 쓰는 노출 기준.
+
+    unverified·pending·duplicate 는 데이터는 남기고 조회에서만 뺀다. 기준이 갈리면
+    목록에 없는 가게를 상세로 보거나, 상세가 404 인 가게에 식사평이 달린다.
+    """
+    return (
+        Restaurant.lat.is_not(None),
+        Restaurant.lng.is_not(None),
+        Restaurant.geocode_status.in_(VISIBLE_GEOCODE_STATUSES),
     )
