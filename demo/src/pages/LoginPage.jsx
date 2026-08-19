@@ -5,13 +5,15 @@ import { api } from '../api'
 
 function loadKakaoSDK() {
   return new Promise((resolve) => {
-    if (window.Kakao) { resolve(); return }
+    if (window.Kakao) {
+      if (!window.Kakao.isInitialized()) window.Kakao.init(import.meta.env.VITE_KAKAO_JS_KEY)
+      resolve()
+      return
+    }
     const script = document.createElement('script')
     script.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js'
     script.onload = () => {
-      if (!window.Kakao.isInitialized()) {
-        window.Kakao.init(import.meta.env.VITE_KAKAO_JS_KEY)
-      }
+      window.Kakao.init(import.meta.env.VITE_KAKAO_JS_KEY)
       resolve()
     }
     document.head.appendChild(script)
@@ -41,7 +43,8 @@ export default function LoginPage() {
       })
       // 페이지가 카카오로 이동하므로 이하 실행 안 됨
     } catch (e) {
-      setError('카카오 로그인을 시작할 수 없어요')
+      console.error('Kakao authorize error:', e)
+      setError(e?.message || JSON.stringify(e) || '카카오 오류')
       setKakaoLoading(false)
     }
   }
