@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Search, Navigation } from 'lucide-react'
 import { api } from '../api'
 
 const DEFAULT_LAT = 37.1996
@@ -181,10 +182,10 @@ export default function MapPage() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {/* 카카오맵 */}
-      <div ref={mapRef} style={{ position: 'absolute', inset: 0 }} />
+      <div ref={mapRef} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
 
-      {/* 검색바 + 이 지역 재검색 */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '14px 16px 0', pointerEvents: 'none' }}>
+      {/* 검색바 + 카테고리 칩 */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '14px 16px 0', pointerEvents: 'none', zIndex: 10 }}>
         <button
           onClick={() => navigate('/map')}
           style={{
@@ -196,7 +197,7 @@ export default function MapPage() {
           }}
         >
           <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#FF4F00', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ color: '#fff', fontSize: 16 }}>🔍</span>
+            <Search size={16} color="#fff" />
           </div>
           <span style={{ fontSize: 14, color: '#aaa' }}>여기에 검색</span>
         </button>
@@ -249,7 +250,7 @@ export default function MapPage() {
       <div style={{
         position: 'absolute',
         bottom: `calc(${panelH} + 12px)`,
-        left: 16,
+        left: 16, zIndex: 10,
         background: '#FF4F00', borderRadius: 20,
         padding: '5px 12px',
         boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
@@ -264,7 +265,7 @@ export default function MapPage() {
         style={{
           position: 'absolute',
           bottom: `calc(${panelH} + 12px)`,
-          right: 16,
+          right: 16, zIndex: 10,
           width: 42, height: 42, borderRadius: '50%',
           background: '#fff', border: 'none', cursor: 'pointer',
           boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
@@ -272,14 +273,14 @@ export default function MapPage() {
           fontSize: 18, transition: 'bottom 0.3s ease',
         }}
       >
-        {isLocating ? <SpinnerSmall /> : '📍'}
+        {isLocating ? <SpinnerSmall /> : <Navigation size={18} color="#FF4F00" />}
       </button>
 
       {/* 하단 패널 */}
       <div
         style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          height: panelH,
+          height: panelH, zIndex: 10,
           background: '#fff',
           borderRadius: '20px 20px 0 0',
           boxShadow: '0 -4px 16px rgba(0,0,0,0.1)',
