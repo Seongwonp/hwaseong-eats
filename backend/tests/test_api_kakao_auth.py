@@ -38,6 +38,32 @@ def app_id_set(monkeypatch):
     monkeypatch.setenv("KAKAO_APP_ID", str(OUR_APP_ID))
 
 
+TEST_KAKAO_ID = 42  # 실제 카카오 회원번호는 훨씬 큰 값이라 겹치지 않는다
+
+
+@pytest.fixture(autouse=True)
+def cleanup_kakao_user():
+    """테스트가 만든 카카오 계정을 지운다.
+
+    /auth/kakao 는 통과하면 실제로 계정을 만든다. 정리를 안 하면 이 테스트를 돌린
+    DB 에 계정이 남는다 — 운영 DB 를 붙여 돌렸을 때 실제로 남았다.
+    """
+    yield
+
+    from sqlalchemy import delete, text
+
+    from app.database import SessionLocal
+    from app.models import User
+
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+            db.execute(delete(User).where(User.kakao_id == TEST_KAKAO_ID))
+            db.commit()
+    except Exception:
+        pass  # DB 가 없는 환경에서는 애초에 계정이 안 만들어진다
+
+
 def _patch_kakao(monkeypatch, response):
     """카카오 호출을 가로채고, 실제로 요청된 URL 을 기록해 돌려준다."""
     called = {}

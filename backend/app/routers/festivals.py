@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.constants import today_kst
 from app.database import get_db
 from app.models import SeasonalEvent
 from app.schemas.festival import SeasonalEventListResponse, SeasonalEventResponse, TodayResponse
@@ -47,7 +48,7 @@ def list_events(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    today = date.today()
+    today = today_kst()
 
     filters = []
     if event_type:
@@ -72,7 +73,7 @@ def today_events(db: Session = Depends(get_db)):
     아무것도 누르지 않아도 답이 나오게 하는 게 기획서 시나리오A 다. 기념일 ±3일,
     축제는 기간 중이면 잡는다. 기간이 끝나면 자연히 빠진다.
     """
-    today = date.today()
+    today = today_kst()
     window = timedelta(days=NEAR_DAYS)
 
     events = db.scalars(
@@ -98,4 +99,4 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
     event = db.get(SeasonalEvent, event_id)
     if event is None:
         raise HTTPException(404, "일정을 찾을 수 없습니다")
-    return _to_response(event, date.today())
+    return _to_response(event, today_kst())

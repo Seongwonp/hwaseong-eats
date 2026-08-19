@@ -117,3 +117,48 @@ class TestAddPoints:
         add_points(db, user_id, 500, "화성인증 식사평")
         db.commit()
         assert db.get(User, user_id).points == 1500
+
+    def test_회수는_잔액이_모자라면_남은_만큼만_걷는다(self, user):
+        """이미 전환해서 잔액이 0 이면 식사평 삭제가 500 으로 터졌다."""
+        from app.services.points import revoke_points
+
+        user_id, db = user
+        add_points(db, user_id, 500, "화성인증 식사평")
+        db.commit()
+        add_points(db, user_id, -500, "화성페이 전환")   # 다 써버린 상태
+        db.commit()
+
+        taken = revoke_points(db, user_id, 500, "식사평 삭제")
+        db.commit()
+
+        assert taken == 0
+        assert db.get(User, user_id).points == 0        # 마이너스로 내려가지 않는다
+
+    def test_회수할_수_있으면_전액_걷는다(self, user):
+        from app.services.points import revoke_points
+
+        user_id, db = user
+        add_points(db, user_id, 500, "화성인증 식사평")
+        db.commit()
+
+        taken = revoke_points(db, user_id, 500, "식사평 삭제")
+        db.commit()
+
+        assert taken == 500
+        assert db.get(User, user_id).points == 0
+
+    def test_일부만_남았으면_남은_만큼만_걷는다(self, user):
+        from app.services.points import revoke_points
+
+        user_id, db = user
+        add_points(db, user_id, 500, "화성인증 식사평")
+        db.commit()
+        db.execute(update(User).where(User.id == user_id).values(points=200))
+        db.commit()
+        db.expire_all()
+
+        taken = revoke_points(db, user_id, 500, "식사평 삭제")
+        db.commit()
+
+        assert taken == 200
+        assert db.get(User, user_id).points == 0

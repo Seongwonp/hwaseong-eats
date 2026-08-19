@@ -14,7 +14,6 @@ from __future__ import annotations
 import collections
 import csv
 import io
-import re
 import zipfile
 from pathlib import Path
 
@@ -23,21 +22,14 @@ from sqlalchemy import text
 from app.core.constants import GEOCODE_SANGGA, REFILL_GEOCODE_STATUSES
 from app.database import SessionLocal
 
+# 매칭 규칙은 네 소스가 같은 걸 써야 한다. app/services/matching.py 참고.
+# norm / road_of 이름은 기존 호출부·테스트 호환용으로 남긴다.
+from app.services.matching import normalize_name as norm
+from app.services.matching import road_key as road_of
+from app.services.matching import same_road
+
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 EXTRACTED = DATA_DIR / "hwaseong_sangga.csv"
-
-_NON_WORD = re.compile(r"[^0-9a-zA-Z가-힣]")
-_CORP = re.compile(r"\(주\)|\(유\)|\(사\)|㈜|주식회사|유한회사|유한책임회사")
-_BUNJI = re.compile(r"\d+(-\d+)?")
-
-def norm(name: str) -> str:
-    return _NON_WORD.sub("", _CORP.sub("", name or ""))
-
-
-def road_of(address: str) -> str:
-    """주소에서 도로명 토큰만 남긴다. '…동탄구 동탄대로5길' → '동탄대로5길'"""
-    tokens = [t for t in (address or "").split() if not _BUNJI.fullmatch(t)]
-    return _NON_WORD.sub("", tokens[-1]) if tokens else ""
 
 
 def extract_hwaseong(zip_path: Path) -> Path:
@@ -82,9 +74,14 @@ def build_index(csv_path: Path) -> dict[str, list[tuple[str, float, float]]]:
 
 
 def lookup(idx: dict, name: str, address: str) -> tuple[float, float] | None:
+    """상호명이 같고 도로명까지 완전히 같을 때만 좌표를 가져온다.
+
+    예전에는 부분일치('중앙로' in '화산중앙로')도 허용했는데, 그러면 다른 가게 좌표를
+    가져온다. mobeom.py 가 같은 이유로 완전일치만 인정하는데 여기만 규칙이 달랐다.
+    """
     road = road_of(address)
     for cand_road, lat, lng in idx.get(norm(name), []):
-        if cand_road and road and (cand_road == road or cand_road in road or road in cand_road):
+        if same_road(cand_road, road):
             return lat, lng
     return None
 

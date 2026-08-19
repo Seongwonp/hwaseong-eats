@@ -9,7 +9,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
-from app.core.ratelimit import EXCHANGE_LIMIT, LOGIN_LIMIT, NICKNAME_LIMIT, SIGNUP_LIMIT, limiter
+from app.core.ratelimit import (
+    EXCHANGE_LIMIT,
+    LOGIN_LIMIT,
+    NICKNAME_LIMIT,
+    SIGNUP_LIMIT,
+    VERIFY_LIMIT,
+    limiter,
+)
 from app.core.security import (
     PasswordTooLongError,
     create_access_token,
@@ -196,8 +203,11 @@ def update_me(
 
 
 @router.post("/verify", response_model=UserResponse)
+@limiter.limit(VERIFY_LIMIT)
 def verify_resident(
-    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """화성 주민 인증.
 

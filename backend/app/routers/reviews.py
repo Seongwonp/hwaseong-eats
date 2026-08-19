@@ -9,23 +9,24 @@ from app.core.constants import REVIEW_POINTS
 from app.core.deps import get_current_user
 from app.database import get_db
 from app.models import Restaurant, Review, User
+from app.models.restaurant import visible_filters
 from app.schemas.review import (
     ReviewCreate,
     ReviewCreateResponse,
     ReviewListResponse,
     ReviewResponse,
 )
-from app.services.points import add_points
+from app.services.points import add_points, revoke_points
 
 router = APIRouter()
 
 
 def _is_certified(user: User, review: Review) -> bool:
-    """화성인증 리뷰인지. 주민인증이 살아 있고 영수증까지 확인된 경우만."""
-    if not (user.is_resident_verified and review.is_receipt_verified):
-        return False
-    expires = user.resident_expires_at
-    return expires is None or expires >= datetime.now(timezone.utc)
+    """화성인증 리뷰인지. 주민인증이 살아 있고 영수증까지 확인된 경우만.
+
+    만료 판정은 User.is_resident_active 한 곳에서만 한다.
+    """
+    return bool(review.is_receipt_verified and user.is_resident_active)
 
 
 def _to_response(review: Review, user: User) -> ReviewResponse:
@@ -53,7 +54,14 @@ def create_review(
 
     화성인증(주민인증 + 영수증) 리뷰만 포인트를 준다. 기획서 p.10 기준이다.
     """
-    if not db.get(Restaurant, body.restaurant_id):
+    # 목록·상세와 같은 노출 기준을 본다. 그냥 db.get 으로 확인하면 지도에 없고
+    # 상세조회도 404 인 가게(좌표 미확보·중복으로 내려둔 행)에 식사평이 달린다.
+    exists_visible = db.scalar(
+        select(Restaurant.id).where(
+            Restaurant.id == body.restaurant_id, *visible_filters()
+        )
+    )
+    if not exists_visible:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "음식점을 찾을 수 없습니다")
 
     review = Review(
@@ -165,8 +173,10 @@ def delete_review(
 
     # 지우고 다시 써서 포인트를 만드는 걸 막으려고 적립분을 회수한다.
     # 조건을 다시 따지지 않고 작성 시점에 기록해 둔 금액만 되돌린다.
+    # 이미 전환해서 잔액이 모자라면 남은 만큼만 걷는다 — 여기서 예외를 올리면
+    # 사용자가 자기 식사평을 영구히 못 지운다.
     if review.earned_points:
-        add_points(db, user.id, -review.earned_points, "식사평 삭제")
+        revoke_points(db, user.id, review.earned_points, "식사평 삭제")
 
     db.delete(review)
     db.commit()

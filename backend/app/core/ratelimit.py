@@ -23,3 +23,6 @@ EXCHANGE_LIMIT = "10/minute"
 
 # 닉네임 변경 — DB 쓰기 연타 방지
 NICKNAME_LIMIT = "10/minute"
+
+# 주민인증 — 호출마다 인증 만료일을 6개월 뒤로 미룬다. 연타를 막는다.
+VERIFY_LIMIT = "5/minute"

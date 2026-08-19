@@ -10,7 +10,6 @@ geocoding.py 는 키워드 검색이 실패하면 주소 검색으로 폴백하�
 from __future__ import annotations
 
 import os
-import re
 import sys
 import time
 from difflib import SequenceMatcher
@@ -26,19 +25,16 @@ from app.core.constants import (
     FOOD_CATEGORIES,
     GEOCODE_UNVERIFIED,
     GEOCODE_VERIFIED,
+    REFINE_GEOCODE_STATUSES,
     in_hwaseong,
 )
 from app.services.geocoding import KEYWORD_URL, AuthError
 
 load_dotenv()
 
-_NON_WORD = re.compile(r"[^0-9a-zA-Z가-힣]")
 # 코나페이는 '(주) 마이선도니', 카카오는 '주식회사마이선도니' 처럼 법인 표기가 제각각이다.
-_CORP = re.compile(r"\(주\)|\(유\)|\(사\)|㈜|주식회사|유한회사|유한책임회사")
-
-
-def norm(name: str) -> str:
-    return _NON_WORD.sub("", _CORP.sub("", name or ""))
+# 정규화 규칙은 matching.py 한 곳에서만 정한다. norm 이름은 기존 호출부·테스트 호환용.
+from app.services.matching import normalize_name as norm  # noqa: E402
 
 
 def region_hint(address: str) -> str:
@@ -77,6 +73,14 @@ def find_place(client: httpx.Client, name: str, address: str) -> tuple[float, fl
     return None
 
 
+# 좌표 출처가 확실한 행은 대상에서 뺀다(:sts).
+#   sangga·localdata  업소 단위 실좌표다. 카카오가 상호를 못 찾으면 unverified 로
+#                     내려가 지도에서 사라진다 — 검증된 좌표를 잃는 손해다.
+#   verified          이미 이 스크립트가 확인한 행이다.
+#   duplicate         다른 출처로 이미 들어온 중복이라 숨겨둔 행이다. 여기서 손대면
+#                     verified 로 덮여 같은 가게가 지도에 두 번 뜬다.
+# 같은 건물에 입점한 업소들이 좌표를 공유하는 건 정상이라, 좌표 중복만으로는
+# 오류라고 볼 수 없다는 점도 같은 이유다.
 TARGET_SQL = text(
     """
     WITH dup AS (
@@ -86,6 +90,7 @@ TARGET_SQL = text(
     SELECT r.id FROM restaurants r
     JOIN dup d ON r.lat = d.lat AND r.lng = d.lng
     WHERE r.category = ANY(:cats)
+      AND r.geocode_status = ANY(:sts)
     ORDER BY r.id
     """
 )
@@ -97,7 +102,16 @@ def run(limit: int | None = None) -> None:
         raise RuntimeError("KAKAO_API_KEY 가 없습니다.")
 
     with SessionLocal() as db:
-        ids = [r[0] for r in db.execute(TARGET_SQL, {"cats": list(FOOD_CATEGORIES)})]
+        ids = [
+            r[0]
+            for r in db.execute(
+                TARGET_SQL,
+                {
+                    "cats": list(FOOD_CATEGORIES),
+                    "sts": list(REFINE_GEOCODE_STATUSES),
+                },
+            )
+        ]
         if limit:
             ids = ids[:limit]
         print(f"겹치는 좌표 대상 {len(ids):,}건")

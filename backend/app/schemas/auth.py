@@ -54,8 +54,12 @@ class UserResponse(BaseModel):
     id: int
     email: str | None  # 카카오 전용 계정은 이메일이 없을 수 있다
     nickname: str
-    is_resident_verified: bool
+
+    # 만료를 반영한 값이다. users.is_resident_verified 컬럼은 만료돼도 True 로 남아
+    # 있어서(되돌리는 배치가 없다) 그대로 내보내면 만료된 사용자도 인증 배지가 뜬다.
+    # 모델의 is_resident_active 프로퍼티에서 읽어 필드 이름만 유지한다.
+    is_resident_verified: bool = Field(validation_alias="is_resident_active")
     resident_expires_at: datetime | None
     points: int
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
