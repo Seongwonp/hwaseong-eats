@@ -31,6 +31,7 @@ app.add_middleware(SlowAPIMiddleware)
 # 급하면 CORS_ORIGINS 환경변수로 덮어쓸 수 있다(쉼표 구분, `*` 면 전면 허용).
 _DEFAULT_ORIGINS = [
     "https://hwaseong-eats-98716.netlify.app",
+    "https://seongwonp.github.io",
     "http://localhost:8080",   # flutter run -d chrome 기본 포트대
     "http://localhost:3000",
     "http://127.0.0.1:8080",
