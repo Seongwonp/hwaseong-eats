@@ -224,26 +224,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
               const SizedBox(height: 12),
 
-              // ── 회원 탈퇴 (로그인만) ──────────────────────
+              // ── 로그아웃 / 회원 탈퇴 (로그인만) ──────────────
+              // 로그아웃을 먼저·눈에 띄게, 회원탈퇴는 맨 아래에 작게
+              // — 자주 쓰는 동작과 되돌리기 어려운 동작의 우선순위를 맞춘다.
               if (auth.isLoggedIn) ...[
                 _Card(
                   child: _NavRow(
-                    label: '회원 탈퇴',
-                    labelColor: AppColors.primary,
-                    icon: Icons.info_outline,
-                    iconColor: AppColors.primary,
-                    onTap: () => _confirmWithdraw(),
+                    label: '로그아웃',
+                    onTap: () => _confirmLogout(),
                   ),
                 ),
-                const SizedBox(height: 12),
-                // 로그아웃
+                const SizedBox(height: 16),
                 Center(
                   child: TextButton(
-                    onPressed: () async {
-                      await ref.read(authProvider.notifier).logout();
-                    },
+                    onPressed: () => _confirmWithdraw(),
                     child: const Text(
-                      '로그아웃',
+                      '회원 탈퇴',
                       style: TextStyle(fontSize: 13, color: Color(0xFFAAAAAA)),
                     ),
                   ),
@@ -294,6 +290,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (!mounted) return;
       _showMessage(err ?? '닉네임이 변경됐어요');
     });
+  }
+
+  void _confirmLogout() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('로그아웃',
+            style: TextStyle(
+                fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w700)),
+        content: const Text('로그아웃 하시겠어요?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text('취소')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(authProvider.notifier).logout();
+            },
+            child: const Text('로그아웃', style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmWithdraw() {
@@ -467,35 +487,22 @@ class _Divider extends StatelessWidget {
 
 class _NavRow extends StatelessWidget {
   final String label;
-  final Color? labelColor;
-  final IconData? icon;
-  final Color? iconColor;
   final VoidCallback onTap;
 
-  const _NavRow({
-    required this.label,
-    required this.onTap,
-    this.labelColor,
-    this.icon,
-    this.iconColor,
-  });
+  const _NavRow({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final color = labelColor ?? AppColors.textPrimary;
+    const color = AppColors.textPrimary;
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: context.hPad, vertical: 16),
         child: Row(
           children: [
-            if (icon != null) ...[
-              Icon(icon, size: 16, color: iconColor ?? color),
-              const SizedBox(width: 8),
-            ],
             Expanded(
               child: Text(label,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.w500, color: color)),
             ),
             Icon(Icons.chevron_right,
