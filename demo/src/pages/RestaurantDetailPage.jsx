@@ -6,34 +6,29 @@ import { isFavorite, toggleFavorite } from './SavedRestaurantsPage'
 
 const TABS = ['개요', '사진', '리뷰', '정보']
 
+const CDN = 'https://images.unsplash.com/'
 const CATEGORY_PHOTOS = {
   restaurant: [
-    'photo-0u5jeQDvdoY', // shabu-shabu hot pot
-    'photo-CK6YDmlxgb4', // chopsticks over food
-    'photo-QcfJl9QQbWk', // table with varied dishes
-    'photo-xk3er6C7oWM', // grill with food
-    'photo-Ce-7KN5AkcY',  // table multiple food items
-    'photo-KAiKUfmTh3A',  // bowl with assorted foods
+    'photo-1562571708-527276a391ac', // Korean food variety
+    'photo-1670819917394-03031b377bea', // chopsticks over food
+    'photo-1708388066828-af75608c3b2f', // table with varied dishes
+    'photo-1708388064672-6536507fdf6e', // grill with food
   ],
   cafe: [
-    'photo-Tyx-fif6mXw',
-    'photo-67EZZZl6jeI',
-    'photo-wQUD2xYXCqo',
-    'photo-Z1Y8kWBe6C8',
-    'photo-dBl6dnIIJeY',
-    'photo-jvxzmp8A4KE',
+    'photo-1621343607959-5d11ff0f1e39', // Korean cafe interior
+    'photo-1652189684524-4fb0c0a9850b', // cafe drinks
+    'photo-1605971981986-e623e8e16f33', // cafe cozy
+    'photo-1708388065153-8b8b29c700c3', // dessert cafe
   ],
   convenience: [
-    'photo-PrqlDA95v3s', // GS25 convenience store
-    'photo-Nl5wErrZLmM', // 7-Eleven at night
-    'photo-JW4TGXeENLg', // storefront
-    'photo-mDlLBVU5-Ps', // building facade with shops
+    'photo-1758570764602-d57bc2922dea', // GS25 convenience store
+    'photo-1683142667313-49cb993d29e2', // 7-Eleven at night
+    'photo-1767042384860-bce4f5241639', // Korea storefront
   ],
   mart: [
-    'photo-zN_3mx64_bk', // woman shopping
-    'photo-aWm7fAUNPEc', // grocery store
-    'photo-1a6qcEH-2ZY', // man with basket
-    'photo-IX4f4WlAXBw', // store front
+    'photo-1644501810962-3a7428e1df93', // grocery store display
+    'photo-1689751935647-8243f57c0669', // mart storefront
+    'photo-1562571708-527276a391ac',    // fallback food photo
   ],
 }
 
@@ -46,7 +41,7 @@ function getPhotoCategory(category) {
 }
 
 function photoUrl(id) {
-  return `https://images.unsplash.com/${id}?w=400&q=80&auto=format&fit=crop`
+  return `${CDN}${id}?w=400&q=80&auto=format&fit=crop`
 }
 
 const MOCK_REVIEWS = [

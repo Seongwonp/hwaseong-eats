@@ -28,7 +28,12 @@ export default function MapPage() {
   const [selected, setSelected] = useState(null)
   const [isKonapay, setIsKonapay] = useState(false)
   const [category, setCategory] = useState(null)
-  const [center, setCenter] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG })
+  const [center, setCenter] = useState(() => {
+    try {
+      const s = sessionStorage.getItem('map_center')
+      return s ? JSON.parse(s) : { lat: DEFAULT_LAT, lng: DEFAULT_LNG }
+    } catch { return { lat: DEFAULT_LAT, lng: DEFAULT_LNG } }
+  })
   const [showSearchHere, setShowSearchHere] = useState(false)
   const [isLocating, setIsLocating] = useState(false)
   const [sheetExpanded, setSheetExpanded] = useState(false)
@@ -60,8 +65,14 @@ export default function MapPage() {
 
     const initMap = () => {
       window.kakao.maps.load(() => {
+      const initCenter = (() => {
+        try {
+          const s = sessionStorage.getItem('map_center')
+          return s ? JSON.parse(s) : { lat: DEFAULT_LAT, lng: DEFAULT_LNG }
+        } catch { return { lat: DEFAULT_LAT, lng: DEFAULT_LNG } }
+      })()
       const map = new window.kakao.maps.Map(mapRef.current, {
-        center: new window.kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG),
+        center: new window.kakao.maps.LatLng(initCenter.lat, initCenter.lng),
         level: 5,
       })
       mapInst.current = map
@@ -71,7 +82,9 @@ export default function MapPage() {
         clearTimeout(idleTimer)
         idleTimer = setTimeout(() => {
           const c = map.getCenter()
-          setCenter({ lat: c.getLat(), lng: c.getLng() })
+          const newCenter = { lat: c.getLat(), lng: c.getLng() }
+          setCenter(newCenter)
+          sessionStorage.setItem('map_center', JSON.stringify(newCenter))
           setShowSearchHere(true)
         }, 300)
       })
