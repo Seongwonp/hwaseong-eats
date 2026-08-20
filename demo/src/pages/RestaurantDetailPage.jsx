@@ -34,7 +34,7 @@ const CATEGORY_PHOTOS = {
 
 function getPhotoCategory(category) {
   if (!category) return 'restaurant'
-  if (category.includes('카페') || category.includes('디저트') || category.includes('베이커리')) return 'cafe'
+  if (category.includes('커피') || category.includes('카페') || category.includes('제과') || category.includes('디저트') || category.includes('베이커리')) return 'cafe'
   if (category.includes('편의점')) return 'convenience'
   if (category.includes('마트') || category.includes('슈퍼') || category.includes('할인점')) return 'mart'
   return 'restaurant'
